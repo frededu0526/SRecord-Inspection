@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>교차 점검 통합 관리 시스템</title>
+  <title>교차 점검 통합 관리 시스템0.02</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -663,8 +663,6 @@
     /*************************************************************************
      * 0. Supabase 초기화 및 전역 상태
      *************************************************************************/
-    // 배포 시 아래 두 상수에 본인의 Supabase URL과 Anon Key를 직접 입력해 두시면
-    // 교사들이 별도 설정 없이 바로 접속할 수 있습니다.
     const DEFAULT_SUPABASE_URL = "";
     const DEFAULT_SUPABASE_KEY = "";
 
@@ -760,14 +758,12 @@
       const ok = confirm('모든 데이터가 영구 삭제됩니다. 진행하시겠습니까?');
       if (!ok) return;
 
-      // DB 연결 정보는 유지하면서 작업 데이터만 초기화할지, 전체 localStorage를 비울지 처리
       const savedUrl = localStorage.getItem('sb_url');
       const savedKey = localStorage.getItem('sb_key');
       localStorage.clear();
       if (savedUrl) localStorage.setItem('sb_url', savedUrl);
       if (savedKey) localStorage.setItem('sb_key', savedKey);
 
-      // 메모리 상태 초기화
       t1Entries = [];
       t2StatusMap = {};
       t2Table2Cache = {};
@@ -887,7 +883,6 @@
       const assigned = getT1AssignedRows(teacher, subject);
       document.getElementById('t1AssignedInfo').textContent = `배정 인원: 총 ${assigned.length}명`;
 
-      // 로컬 저장소 불러오기
       const lsKey = `tab1_${teacher}_${subject}`;
       const saved = localStorage.getItem(lsKey);
       if (saved) {
@@ -916,7 +911,6 @@
       localStorage.setItem(`tab1_${teacher}_${subject}`, JSON.stringify(t1Entries));
     }
 
-    // 부분적 일괄 입력 파싱 (범위 #####-@@@@@ 및 쉼표 구분 #####,$$$$$)
     function expandT1StudentInput(rawStr, assignedIdSet) {
       const tokens = rawStr.split(',').map(s => s.trim()).filter(Boolean);
       const matched = new Set();
@@ -935,7 +929,6 @@
             unmatched.push(token);
             return;
           }
-          // 실제 내부 테이블1에 배정된 학번 중 범위 내 학번 추출 (유령 학번 방지)
           let foundInRange = 0;
           assignedIdSet.forEach(id => {
             const num = parseInt(id, 10);
@@ -982,7 +975,6 @@
         return;
       }
 
-      // 기존 목록에 반영 (동일 학번은 덮어쓰기)
       const map = new Map(t1Entries.map(item => [item['학번'], item]));
       matched.forEach(id => {
         map.set(id, { '과목명': subject, '학번': id, '수정사항': comment });
@@ -1050,7 +1042,6 @@
 
     function renderT1Table() {
       const tbody = document.getElementById('t1TableBody');
-      // 2행(입력행) 유지
       const inputRow = tbody.querySelector('.input-row');
       tbody.innerHTML = '';
       tbody.appendChild(inputRow);
@@ -1097,7 +1088,6 @@
         alert(`현재 입력한 내용은 저장되었습니다. 단, ${subject} 과목에서 아직 점검하지 않은 학생이 ${missingCount}명 남아 있습니다.`);
       }
 
-      // 1) UI에 있는 학생들: 담당 검수 컬럼만 부분 업데이트(UPSERT)
       const upsertGroups = { '1검 결과': [], '2검 결과': [], '3검 결과': [] };
       t1Entries.forEach(entry => {
         const col = roleByStudentId[entry['학번']];
@@ -1120,7 +1110,6 @@
           }
         }
 
-        // 2) 삭제 동기화: UI 목록에 없는 학번은 DB의 해당 n검 결과 컬럼을 null로 비움
         const removedIds = assignedRows
           .map(r => r['학번'])
           .filter(id => !enteredIds.has(id));
@@ -1284,7 +1273,6 @@
       const targetRows = getT2TargetRows();
       document.getElementById('t2CountInfo').textContent = `조회 대상: 총 ${targetRows.length}명`;
 
-      // 로컬 저장 데이터 로드
       const lsKey = `tab2_${teacher}`;
       try {
         t2StatusMap = JSON.parse(localStorage.getItem(lsKey) || '{}');
@@ -1292,7 +1280,6 @@
         t2StatusMap = {};
       }
 
-      // Supabase 내부 테이블2 & 내부 테이블3 조회
       t2Table2Cache = {};
       if (supabaseClient && targetRows.length > 0) {
         const subjects = Array.from(new Set(targetRows.map(r => r['과목명'])));
@@ -1304,7 +1291,6 @@
           t2Table2Cache[`${r['과목명']}||${r['학번']}`] = r;
         });
 
-        // 로컬에 아직 없는 항목은 DB 내부 테이블3에서 초기값 병합
         const { data: t3Data } = await supabaseClient
           .from('내부 테이블3')
           .select('*')
@@ -1456,9 +1442,6 @@
     /*************************************************************************
      * 3번 탭: 교무기획부 업무담당자를 위한 모니터링 탭
      *************************************************************************/
-    let t3Table2List = [];
-    let t3Table3List = [];
-
     function populateTab3Subjects() {
       const grade = document.getElementById('t3GradeSelect').value;
       const subSel = document.getElementById('t3SubjectSelect');
@@ -1504,7 +1487,6 @@
       const grade = document.getElementById('t3GradeSelect').value;
       const subject = document.getElementById('t3SubjectSelect').value;
 
-      // 내부 테이블1 기준(Master) 필터링
       const baseRows = masterTable1
         .filter(r => r['학번'].startsWith(grade) && (subject === '전체과목' || r['과목명'] === subject))
         .sort((a, b) => {
@@ -1527,7 +1509,6 @@
 
       const isAllSubjects = subject === '전체과목';
 
-      // 1) 요약 보기 렌더링
       const sumHead = document.getElementById('t3SummaryHead');
       const sumBody = document.getElementById('t3SummaryBody');
       sumHead.innerHTML = `
@@ -1543,7 +1524,6 @@
       if (baseRows.length === 0) {
         sumBody.innerHTML = `<tr><td colspan="${isAllSubjects ? 5 : 4}" style="color:var(--muted); padding:24px;">해당 학년/과목의 기초자료가 없습니다.</td></tr>`;
       } else {
-        // 과목별 그룹핑
         const grouped = new Map();
         baseRows.forEach(r => {
           if (!grouped.has(r['과목명'])) grouped.set(r['과목명'], []);
@@ -1586,7 +1566,6 @@
         }).join('');
       }
 
-      // 2) 전체 보기 렌더링
       const fullHead = document.getElementById('t3FullHead');
       const fullBody = document.getElementById('t3FullBody');
       fullHead.innerHTML = `
@@ -1707,7 +1686,6 @@
 
     function t4RemoveSubject(grade, name) {
       t4Subjects[grade] = t4Subjects[grade].filter(s => s !== name);
-      // 해당 학년·과목의 대기 중인 학생 데이터도 함께 정리
       t4DraftTable1 = t4DraftTable1.filter(r => !(r['학번'].startsWith(String(grade)) && r['과목명'] === name));
       renderT4Bubbles();
       renderT4Preview();
@@ -1740,7 +1718,6 @@
           </span>
         `).join('');
 
-        // 3번 구역 과목 드롭다운 동기화
         const sel = document.getElementById(`t4RegSub${g}`);
         const prev = sel.value;
         sel.innerHTML = '<option value="">-- 과목 선택 --</option>' +
@@ -1819,7 +1796,6 @@
       const usedDefaultEndNum = (t4EndNum === null);
       const effectiveEndNum = t4EndNum || 40;
 
-      // 학번 범위가 입력된 경우: 해당 학번들을 생성하거나 기존 행에 덧붙임
       if (rawIdRange) {
         let ids = [];
         try {
@@ -1852,7 +1828,6 @@
         const autoMsg = usedDefaultEndNum ? '\n(종료 번호 미입력으로 기본 40번 기준으로 처리됨)' : '';
         alert(`[${subject}] ${ids.length}명에게 ${roleField}(${teacherName}) 반영 완료.${autoMsg}`);
       } else {
-        // 학번 칸이 비어있는 경우: 이미 등록된 해당 과목 학생 전체에 덧붙임
         const targetRows = t4DraftTable1.filter(r => r['학번'].startsWith(String(grade)) && r['과목명'] === subject);
         if (targetRows.length === 0) {
           alert('학번 범위를 먼저 입력해 주세요.');
@@ -1864,6 +1839,7 @@
       }
     }
 
+    // 수정된 모든과목 일괄 반영 함수
     function t4BatchAllSubjects(grade, roleField) {
       const inputIdMap = {
         '1검교사': `t4RegC1_${grade}`,
@@ -1876,39 +1852,103 @@
         return;
       }
 
-      const gradeRows = t4DraftTable1.filter(r => r['학번'].startsWith(String(grade)));
-      if (gradeRows.length === 0) {
-        alert('먼저 과목별 학번을 등록해 주세요.');
+      const registeredSubjects = t4Subjects[grade];
+      if (!registeredSubjects || registeredSubjects.length === 0) {
+        alert(`먼저 위쪽 '2) 학년별 과목 입력'에서 ${grade}학년 과목을 등록해 주세요.`);
         return;
       }
 
+      const rawIdRange = document.getElementById(`t4RegId${grade}`).value.trim();
+      const usedDefaultEndNum = (t4EndNum === null);
+      const effectiveEndNum = t4EndNum || 40;
       const otherCheckRoles = ['1검교사', '2검교사', '3검교사'].filter(c => c !== roleField);
-      const subjectsInGrade = Array.from(new Set(gradeRows.map(r => r['과목명'])));
-      const appliedSubjects = [];
-      const skippedSubjects = [];
 
-      subjectsInGrade.forEach(sub => {
-        const subRows = gradeRows.filter(r => r['과목명'] === sub);
-        // 다른 검수 차수(1·2·3검 중 나머지)에 이미 배정된 경우에만 제외 (입력주체교사 중복은 허용)
-        const hasConflict = subRows.some(r => otherCheckRoles.some(otherCol => r[otherCol] === teacherName));
-        if (hasConflict) {
-          skippedSubjects.push(sub);
-        } else {
-          subRows.forEach(r => { r[roleField] = teacherName; });
-          appliedSubjects.push(sub);
+      // 1) 학번 범위가 입력되어 있는 경우: 등록된 모든 과목 × 입력 학번 범위 조합을 생성하거나 기존 행에 덮어쓰기
+      if (rawIdRange) {
+        let ids = [];
+        try {
+          ids = parseT4StudentRange(rawIdRange, grade, effectiveEndNum);
+        } catch (err) {
+          alert(err.message);
+          return;
         }
-      });
 
-      renderT4Preview();
+        const rowMap = new Map(t4DraftTable1.map(r => [`${r['과목명']}||${r['학번']}`, r]));
+        const appliedSubjects = [];
+        const skippedSubjects = [];
 
-      let msg = `${grade}학년 [${appliedSubjects.join(', ') || '없음'}] 과목에 ${roleField}(${teacherName}) 일괄 반영 완료.`;
-      if (skippedSubjects.length > 0) {
-        msg += `\n(${teacherName} 교사가 다른 검수 차수에 이미 배정된 [${skippedSubjects.join(', ')}] 과목은 제외되었습니다.)`;
+        registeredSubjects.forEach(sub => {
+          // 해당 과목·학번 범위 내 다른 검수 차수(1·2·3검 중 나머지)에 동일 교사가 이미 배정되어 있는지 확인
+          const hasConflict = ids.some(id => {
+            const existing = rowMap.get(`${sub}||${id}`);
+            return existing && otherCheckRoles.some(otherCol => existing[otherCol] === teacherName);
+          });
+
+          if (hasConflict) {
+            skippedSubjects.push(sub);
+          } else {
+            ids.forEach(id => {
+              const key = `${sub}||${id}`;
+              if (rowMap.has(key)) {
+                rowMap.get(key)[roleField] = teacherName;
+              } else {
+                rowMap.set(key, {
+                  '과목명': sub,
+                  '학번': id,
+                  '입력주체교사': '',
+                  '1검교사': '',
+                  '2검교사': '',
+                  '3검교사': '',
+                  [roleField]: teacherName
+                });
+              }
+            });
+            appliedSubjects.push(sub);
+          }
+        });
+
+        t4DraftTable1 = Array.from(rowMap.values());
+        renderT4Preview();
+
+        const autoMsg = usedDefaultEndNum ? '\n(종료 번호 미입력으로 기본 40번 기준으로 처리됨)' : '';
+        let msg = `${grade}학년 등록된 과목 [${appliedSubjects.join(', ') || '없음'}]의 ${ids.length}명에게 ${roleField}(${teacherName}) 일괄 반영 완료.${autoMsg}`;
+        if (skippedSubjects.length > 0) {
+          msg += `\n(${teacherName} 교사가 다른 검수 차수에 이미 배정된 [${skippedSubjects.join(', ')}] 과목은 제외되었습니다.)`;
+        }
+        alert(msg);
+      } else {
+        // 2) 학번 칸이 비어 있는 경우: 이미 미리보기에 생성된 해당 학년 전체 과목·학번에 일괄 반영
+        const gradeRows = t4DraftTable1.filter(r => r['학번'].startsWith(String(grade)));
+        if (gradeRows.length === 0) {
+          alert('학번 범위를 입력한 뒤 버튼을 눌러 주세요.');
+          return;
+        }
+
+        const subjectsInGrade = Array.from(new Set(gradeRows.map(r => r['과목명'])));
+        const appliedSubjects = [];
+        const skippedSubjects = [];
+
+        subjectsInGrade.forEach(sub => {
+          const subRows = gradeRows.filter(r => r['과목명'] === sub);
+          const hasConflict = subRows.some(r => otherCheckRoles.some(otherCol => r[otherCol] === teacherName));
+          if (hasConflict) {
+            skippedSubjects.push(sub);
+          } else {
+            subRows.forEach(r => { r[roleField] = teacherName; });
+            appliedSubjects.push(sub);
+          }
+        });
+
+        renderT4Preview();
+
+        let msg = `${grade}학년 기존 등록된 과목 [${appliedSubjects.join(', ') || '없음'}]에 ${roleField}(${teacherName}) 일괄 반영 완료.`;
+        if (skippedSubjects.length > 0) {
+          msg += `\n(${teacherName} 교사가 다른 검수 차수에 이미 배정된 [${skippedSubjects.join(', ')}] 과목은 제외되었습니다.)`;
+        }
+        alert(msg);
       }
-      alert(msg);
     }
 
-    // 미리보기 표: 동일 설정(과목명 + 교사 4명) 단위로 묶어 범위 표시 및 그룹 삭제 지원
     function getT4GroupedPreview() {
       const sorted = [...t4DraftTable1].sort((a, b) => {
         const s = a['과목명'].localeCompare(b['과목명'], 'ko');
@@ -2009,7 +2049,6 @@
             if (!registeredClasses.has(cls)) {
               const proceed = confirm(`${sub} 과목의 ${cls}반이 등록되지 않았습니다. 선택과목인 경우 그대로 전송하시겠습니까?`);
               if (!proceed) return;
-              // 동일 과목의 다른 반 확인 창이 반복되지 않도록 해당 과목의 누락 확인은 통과 처리
               break;
             }
           }
