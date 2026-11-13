@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>교차 점검 통합 관리 시스템0.02</title>
+  <title>교차 점검 통합 관리 시스템0.03</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -29,7 +29,6 @@
       line-height: 1.5;
     }
 
-    /* 상단 헤더 & 오버올 메인 인터페이스 */
     header {
       background: #0f172a;
       color: #fff;
@@ -44,7 +43,6 @@
     header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
     .header-actions { display: flex; gap: 10px; align-items: center; }
 
-    /* 탭 네비게이션 */
     .tab-nav {
       background: #fff;
       border-bottom: 2px solid var(--border);
@@ -73,12 +71,10 @@
       background: #eff6ff;
     }
 
-    /* 메인 컨테이너 */
     .container { max-width: 1320px; margin: 24px auto; padding: 0 20px 60px; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
-    /* 카드 & 패널 */
     .card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -100,7 +96,6 @@
       gap: 8px;
     }
 
-    /* 폼 요소 & 버튼 */
     .control-bar {
       display: flex;
       flex-wrap: wrap;
@@ -150,7 +145,6 @@
     .btn-outline:hover:not(:disabled) { background: #f8fafc; border-color: #94a3b8; }
     .btn-sm { padding: 5px 10px; font-size: 0.82rem; }
 
-    /* 테이블 스타일 */
     .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: center; }
     th {
@@ -170,7 +164,6 @@
     tr.input-row td { background: #eff6ff; border-bottom: 2px solid #bfdbfe; }
     tbody tr:hover:not(.input-row) { background: #f8fafc; }
 
-    /* 상태 배지 */
     .badge {
       display: inline-block;
       padding: 3px 9px;
@@ -189,7 +182,6 @@
     .badge-edit:hover { background: #fde68a; }
     .badge-done { background: #dbeafe; color: #1e40af; }
 
-    /* 4번 탭 학년별 3열 그리드 */
     .grade-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -254,7 +246,6 @@
     }
     .reg-row input[type="text"] { flex: 1; min-width: 100px; }
 
-    /* 서브 탭 (3번 탭 요약/전체 보기) */
     .sub-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
     .sub-tab-btn {
       padding: 7px 16px;
@@ -270,7 +261,6 @@
       border-color: var(--secondary);
     }
 
-    /* 모달 팝업 */
     .modal-backdrop {
       display: none;
       position: fixed;
@@ -316,7 +306,7 @@
 </head>
 <body>
 
-  <!-- 오버올 메인 인터페이스 (상단 헤더) -->
+  <!-- 오버올 메인 인터페이스 -->
   <header>
     <div>
       <h1>학교생활기록부 교차 점검 시스템</h1>
@@ -485,7 +475,6 @@
           <button class="sub-tab-btn" id="t3SubBtnFull" onclick="switchT3Mode('full')">전체 보기 (학생별 상세)</button>
         </div>
 
-        <!-- 요약 보기 인터페이스 -->
         <div id="t3SummaryView" class="table-wrap">
           <table>
             <thead id="t3SummaryHead"></thead>
@@ -493,7 +482,6 @@
           </table>
         </div>
 
-        <!-- 전체 보기 인터페이스 -->
         <div id="t3FullView" class="table-wrap" style="display:none;">
           <table>
             <thead id="t3FullHead"></thead>
@@ -507,7 +495,6 @@
          4번 탭: 기초자료 입력 탭
          ========================================================= -->
     <section id="tab4" class="tab-content">
-      <!-- 1) 메인 인터페이스 -->
       <div class="card">
         <div class="card-title">
           <span>1) 학급 기본 설정 및 기초자료 전송</span>
@@ -533,14 +520,12 @@
         </div>
       </div>
 
-      <!-- 2) 학년별 과목 입력 인터페이스 -->
       <div class="card">
         <div class="card-title">
           <span>2) 학년별 과목 입력</span>
           <button class="btn btn-danger btn-sm" onclick="t4DeleteAllSubjects()">전체 일괄 삭제</button>
         </div>
         <div class="grade-grid">
-          <!-- 1학년 과목 -->
           <div class="grade-box">
             <h4>
               <span>1학년 과목</span>
@@ -552,7 +537,6 @@
             </div>
             <div class="bubble-list" id="t4SubBubbles1"></div>
           </div>
-          <!-- 2학년 과목 -->
           <div class="grade-box">
             <h4>
               <span>2학년 과목</span>
@@ -564,7 +548,6 @@
             </div>
             <div class="bubble-list" id="t4SubBubbles2"></div>
           </div>
-          <!-- 3학년 과목 -->
           <div class="grade-box">
             <h4>
               <span>3학년 과목</span>
@@ -579,18 +562,14 @@
         </div>
       </div>
 
-      <!-- 3) 과목별 학생(학번) 등록 인터페이스 -->
       <div class="card">
         <div class="card-title">
           <span>3) 과목별 학생(학번) 및 검수 교사 등록</span>
           <span class="help-text">각 반영 버튼은 독립적으로 동작하며 기존 데이터에 덧붙여집니다.</span>
         </div>
-        <div class="grade-grid" id="t4RegGrid">
-          <!-- JS로 1, 2, 3학년 구역 렌더링 -->
-        </div>
+        <div class="grade-grid" id="t4RegGrid"></div>
       </div>
 
-      <!-- 전송 전 미리보기 및 삭제 인터페이스 -->
       <div class="card">
         <div class="card-title">
           <span>기초자료 전송 전 미리보기 ("내부 테이블1" 대기 목록)</span>
@@ -661,29 +640,30 @@
 
   <script>
     /*************************************************************************
-     * 0. Supabase 초기화 및 전역 상태
+     * 0. Supabase 초기화 및 전체 데이터 페이지네이션 유틸
      *************************************************************************/
     const DEFAULT_SUPABASE_URL = "";
     const DEFAULT_SUPABASE_KEY = "";
 
     let supabaseClient = null;
-    let masterTable1 = []; // Supabase "내부 테이블1" 캐시
+    let masterTable1 = []; // Supabase "내부 테이블1" 전체 캐시
 
     // 1번 탭 상태: [{ 과목명, 학번, 수정사항 }]
     let t1Entries = [];
+    let t1LoadSeq = 0; // 비동기 전환 시 이전 요청 덮어쓰기 방지 토큰
 
-    // 2번 탭 상태: { "과목명||학번": "점검중" | "수정중" | "이상 없음/수정 완료" }
+    // 2번 탭 상태
     let t2StatusMap = {};
-    let t2Table2Cache = {}; // { "과목명||학번": row }
+    let t2Table2Cache = {};
 
     // 3번 탭 상태
-    let t3Mode = 'summary'; // 'summary' | 'full'
+    let t3Mode = 'summary';
 
-    // 4번 탭 상태 (기초자료 작성용)
-    let t4EndNum = null;       // 확정된 종료 번호 (미확정 시 기본 40 사용)
-    let t4ClassCount = null;   // 확정된 학급 개수
-    let t4Subjects = { 1: [], 2: [], 3: [] }; // 학년별 과목 목록
-    let t4DraftTable1 = [];    // 전송 대기 중인 "내부 테이블1" 배열
+    // 4번 탭 상태
+    let t4EndNum = null;
+    let t4ClassCount = null;
+    let t4Subjects = { 1: [], 2: [], 3: [] };
+    let t4DraftTable1 = [];
 
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
@@ -693,6 +673,44 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+    }
+
+    // Supabase 기본 1,000행 제한을 우회하여 전체 행을 끝까지 가져오는 헬퍼
+    async function fetchAllRows(tableName, applyFilterFn = null) {
+      if (!supabaseClient) return [];
+      const pageSize = 1000;
+      let from = 0;
+      let allData = [];
+
+      while (true) {
+        let query = supabaseClient.from(tableName).select('*');
+        if (applyFilterFn) {
+          query = applyFilterFn(query);
+        }
+        // 일관된 정렬을 보장해 페이지 누락 방지
+        query = query.order('과목명', { ascending: true }).order('학번', { ascending: true }).range(from, from + pageSize - 1);
+
+        const { data, error } = await query;
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        allData = allData.concat(data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return allData;
+    }
+
+    // 컬럼명 띄어쓰기/별칭 및 공백 정규화
+    function normalizeTable1Row(r) {
+      return {
+        '과목명': String(r['과목명'] ?? r['과목'] ?? r['교과목'] ?? '').trim(),
+        '학번': String(r['학번'] ?? '').trim(),
+        '입력주체교사': String(r['입력주체교사'] ?? r['입력주체 교사'] ?? r['입력주체교사(1검)'] ?? '').trim(),
+        '1검교사': String(r['1검교사'] ?? r['1검 교사'] ?? '').trim(),
+        '2검교사': String(r['2검교사'] ?? r['2검 교사'] ?? '').trim(),
+        '3검교사': String(r['3검교사'] ?? r['3검 교사'] ?? '').trim()
+      };
     }
 
     function initSupabase() {
@@ -811,15 +829,17 @@
 
     async function fetchMasterTable1() {
       if (!supabaseClient) return;
-      const { data, error } = await supabaseClient.from('내부 테이블1').select('*');
-      if (error) {
+      try {
+        const rawRows = await fetchAllRows('내부 테이블1');
+        masterTable1 = rawRows.map(normalizeTable1Row);
+        document.getElementById('dbStatusText').textContent = `Supabase 연결됨 (기초자료 ${masterTable1.length}건)`;
+        populateTab1Teachers();
+        populateTab2Teachers();
+        populateTab3Subjects();
+      } catch (error) {
         console.error('내부 테이블1 조회 오류:', error);
-        return;
+        alert('기초자료 조회 중 오류가 발생했습니다: ' + error.message);
       }
-      masterTable1 = data || [];
-      populateTab1Teachers();
-      populateTab2Teachers();
-      populateTab3Subjects();
     }
 
     /*************************************************************************
@@ -852,7 +872,7 @@
       if (teacher) {
         masterTable1.forEach(r => {
           if (r['1검교사'] === teacher || r['2검교사'] === teacher || r['3검교사'] === teacher) {
-            set.add(r['과목명']);
+            if (r['과목명']) set.add(r['과목명']);
           }
         });
       }
@@ -868,32 +888,81 @@
       onT1SubjectChange();
     }
 
-    function onT1SubjectChange() {
+    // 과목/교사 변경 시 즉시 화면을 비우고 DB(내부 테이블2) + 로컬 저장소 내역을 자동 병합 로드
+    async function onT1SubjectChange() {
+      const seq = ++t1LoadSeq;
       const teacher = document.getElementById('t1TeacherSelect').value;
       const subject = document.getElementById('t1SubjectSelect').value;
       document.getElementById('t1InputSubjectDisplay').textContent = subject || '-';
 
+      // 드롭다운을 옮기는 즉시 이전 과목 행이 화면에 남지 않도록 초기화
+      t1Entries = [];
+      renderT1Table();
+
       if (!teacher || !subject) {
-        t1Entries = [];
         document.getElementById('t1AssignedInfo').textContent = '';
-        renderT1Table();
         return;
       }
 
       const assigned = getT1AssignedRows(teacher, subject);
       document.getElementById('t1AssignedInfo').textContent = `배정 인원: 총 ${assigned.length}명`;
 
+      const roleByStudentId = {};
+      assigned.forEach(r => {
+        if (r['1검교사'] === teacher) roleByStudentId[r['학번']] = '1검 결과';
+        else if (r['2검교사'] === teacher) roleByStudentId[r['학번']] = '2검 결과';
+        else if (r['3검교사'] === teacher) roleByStudentId[r['학번']] = '3검 결과';
+      });
+
+      const mergedMap = new Map();
+
+      // 1) DB("내부 테이블2")에 이미 저장된 해당 교사·과목 점검 내역 불러오기
+      if (supabaseClient && assigned.length > 0) {
+        try {
+          const dbRows = await fetchAllRows('내부 테이블2', q => q.eq('과목명', subject));
+          if (seq !== t1LoadSeq) return; // 그사이 다른 과목으로 다시 바꿨으면 무시
+
+          dbRows.forEach(row => {
+            const sid = String(row['학번'] ?? '').trim();
+            const col = roleByStudentId[sid];
+            if (col && row[col] !== null && row[col] !== undefined) {
+              mergedMap.set(sid, {
+                '과목명': subject,
+                '학번': sid,
+                '수정사항': String(row[col])
+              });
+            }
+          });
+        } catch (err) {
+          console.error('내부 테이블2 자동 로드 오류:', err);
+        }
+      }
+
+      // 2) 로컬 저장소에 저장된 미제출/최신 작업 내역 덮어쓰기 (현재 선택된 과목만 엄격 필터링)
       const lsKey = `tab1_${teacher}_${subject}`;
       const saved = localStorage.getItem(lsKey);
       if (saved) {
         try {
-          t1Entries = JSON.parse(saved);
-        } catch {
-          t1Entries = [];
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(item => {
+              const sid = String(item['학번'] ?? '').trim();
+              if (item['과목명'] === subject && roleByStudentId[sid]) {
+                mergedMap.set(sid, {
+                  '과목명': subject,
+                  '학번': sid,
+                  '수정사항': String(item['수정사항'] ?? '이상 없음')
+                });
+              }
+            });
+          }
+        } catch (e) {
+          console.error('로컬 데이터 파싱 오류:', e);
         }
-      } else {
-        t1Entries = [];
       }
+
+      if (seq !== t1LoadSeq) return;
+      t1Entries = Array.from(mergedMap.values()).sort((a, b) => a['학번'].localeCompare(b['학번']));
       renderT1Table();
     }
 
@@ -950,32 +1019,32 @@
       return { matched: Array.from(matched), unmatched };
     }
 
-    function t1ApplyInput() {
+    function t1ApplyInput(silent = false) {
       const teacher = document.getElementById('t1TeacherSelect').value;
       const subject = document.getElementById('t1SubjectSelect').value;
       if (!teacher || !subject) {
-        alert('교사 이름과 과목을 먼저 선택해 주세요.');
-        return;
+        if (!silent) alert('교사 이름과 과목을 먼저 선택해 주세요.');
+        return false;
       }
 
       const rawId = document.getElementById('t1InputStudentId').value.trim();
       if (!rawId) {
-        alert('학번을 입력해 주세요.');
-        return;
+        if (!silent) alert('학번을 입력해 주세요.');
+        return false;
       }
       const rawComment = document.getElementById('t1InputComment').value.trim();
       const comment = rawComment === '' ? '이상 없음' : rawComment;
 
       const assignedRows = getT1AssignedRows(teacher, subject);
-      const assignedIdSet = new Set(assignedRows.map(r => r['학번']));
+      const assignedIdSet = new Set(assignedRows.map(r => String(r['학번']).trim()));
       const { matched, unmatched } = expandT1StudentInput(rawId, assignedIdSet);
 
       if (matched.length === 0) {
-        alert('선택한 교사·과목에 배정된 학번과 일치하는 번호가 없습니다.');
-        return;
+        if (!silent) alert('선택한 교사·과목에 배정된 학번과 일치하는 번호가 없습니다.');
+        return false;
       }
 
-      const map = new Map(t1Entries.map(item => [item['학번'], item]));
+      const map = new Map(t1Entries.map(item => [String(item['학번']).trim(), item]));
       matched.forEach(id => {
         map.set(id, { '과목명': subject, '학번': id, '수정사항': comment });
       });
@@ -987,9 +1056,10 @@
       document.getElementById('t1InputStudentId').value = '';
       document.getElementById('t1InputComment').value = '';
 
-      if (unmatched.length > 0) {
+      if (!silent && unmatched.length > 0) {
         alert(`배정된 학번 ${matched.length}건이 반영되었습니다.\n(미배정 또는 형식 오류 제외: ${unmatched.join(', ')})`);
       }
+      return true;
     }
 
     function t1BatchFillRemaining() {
@@ -1000,34 +1070,42 @@
         return;
       }
 
+      // 2행 입력칸에 미처 [반영] 버튼을 누르지 않은 학번이 적혀 있다면 먼저 반영하여 유실 방지
+      if (document.getElementById('t1InputStudentId').value.trim() !== '') {
+        t1ApplyInput(true);
+      }
+
       const assignedRows = getT1AssignedRows(teacher, subject);
-      const existingSet = new Set(t1Entries.map(e => e['학번']));
+      // 문자열 정규화 비교로 기존 입력 학생이 절대 덮어씌워지지 않도록 보호
+      const existingSet = new Set(t1Entries.map(e => String(e['학번']).trim()));
       let addedCount = 0;
 
       assignedRows.forEach(r => {
-        if (!existingSet.has(r['학번'])) {
+        const sid = String(r['학번']).trim();
+        if (!existingSet.has(sid)) {
           t1Entries.push({
             '과목명': subject,
-            '학번': r['학번'],
+            '학번': sid,
             '수정사항': '이상 없음'
           });
+          existingSet.add(sid);
           addedCount++;
         }
       });
 
       if (addedCount === 0) {
-        alert('추가할 미입력 학생이 없습니다.');
+        alert('추가할 미입력 학생이 없습니다. (모든 배정 학생이 이미 입력되어 있습니다.)');
         return;
       }
 
       t1Entries.sort((a, b) => a['학번'].localeCompare(b['학번']));
       saveT1Local();
       renderT1Table();
-      alert(`나머지 ${addedCount}명의 학생이 '이상 없음'으로 일괄 입력되었습니다.`);
+      alert(`기존 입력된 ${t1Entries.length - addedCount}명은 유지하고, 나머지 ${addedCount}명의 학생을 '이상 없음'으로 일괄 입력했습니다.`);
     }
 
     function t1EditRow(studentId) {
-      const target = t1Entries.find(e => e['학번'] === studentId);
+      const target = t1Entries.find(e => String(e['학번']).trim() === String(studentId).trim());
       if (!target) return;
       document.getElementById('t1InputStudentId').value = target['학번'];
       document.getElementById('t1InputComment').value = target['수정사항'] === '이상 없음' ? '' : target['수정사항'];
@@ -1035,7 +1113,8 @@
     }
 
     function t1DeleteRow(studentId) {
-      t1Entries = t1Entries.filter(e => e['학번'] !== studentId);
+      const sid = String(studentId).trim();
+      t1Entries = t1Entries.filter(e => String(e['학번']).trim() !== sid);
       saveT1Local();
       renderT1Table();
     }
@@ -1076,13 +1155,14 @@
       const assignedRows = getT1AssignedRows(teacher, subject);
       const roleByStudentId = {};
       assignedRows.forEach(r => {
-        if (r['1검교사'] === teacher) roleByStudentId[r['학번']] = '1검 결과';
-        else if (r['2검교사'] === teacher) roleByStudentId[r['학번']] = '2검 결과';
-        else if (r['3검교사'] === teacher) roleByStudentId[r['학번']] = '3검 결과';
+        const sid = String(r['학번']).trim();
+        if (r['1검교사'] === teacher) roleByStudentId[sid] = '1검 결과';
+        else if (r['2검교사'] === teacher) roleByStudentId[sid] = '2검 결과';
+        else if (r['3검교사'] === teacher) roleByStudentId[sid] = '3검 결과';
       });
 
-      const enteredIds = new Set(t1Entries.map(e => e['학번']));
-      const missingCount = assignedRows.filter(r => !enteredIds.has(r['학번'])).length;
+      const enteredIds = new Set(t1Entries.map(e => String(e['학번']).trim()));
+      const missingCount = assignedRows.filter(r => !enteredIds.has(String(r['학번']).trim())).length;
 
       if (missingCount > 0) {
         alert(`현재 입력한 내용은 저장되었습니다. 단, ${subject} 과목에서 아직 점검하지 않은 학생이 ${missingCount}명 남아 있습니다.`);
@@ -1090,11 +1170,12 @@
 
       const upsertGroups = { '1검 결과': [], '2검 결과': [], '3검 결과': [] };
       t1Entries.forEach(entry => {
-        const col = roleByStudentId[entry['학번']];
+        const sid = String(entry['학번']).trim();
+        const col = roleByStudentId[sid];
         if (col) {
           upsertGroups[col].push({
             '과목명': subject,
-            '학번': entry['학번'],
+            '학번': sid,
             [col]: entry['수정사항']
           });
         }
@@ -1110,38 +1191,37 @@
           }
         }
 
-        const removedIds = assignedRows
-          .map(r => r['학번'])
-          .filter(id => !enteredIds.has(id));
+        // 삭제 동기화: UI 목록에서 제거된 학번은 DB의 해당 n검 결과 컬럼을 null로 비움
+        const removedIdSet = new Set(
+          assignedRows
+            .map(r => String(r['학번']).trim())
+            .filter(sid => !enteredIds.has(sid))
+        );
 
-        if (removedIds.length > 0) {
-          const { data: existingDbRows, error: fetchErr } = await supabaseClient
-            .from('내부 테이블2')
-            .select('학번')
-            .eq('과목명', subject)
-            .in('학번', removedIds);
-          if (fetchErr) throw fetchErr;
+        if (removedIdSet.size > 0) {
+          const existingDbRows = await fetchAllRows('내부 테이블2', q => q.eq('과목명', subject));
+          const nullGroups = { '1검 결과': [], '2검 결과': [], '3검 결과': [] };
 
-          if (existingDbRows && existingDbRows.length > 0) {
-            const nullGroups = { '1검 결과': [], '2검 결과': [], '3검 결과': [] };
-            existingDbRows.forEach(dbRow => {
-              const col = roleByStudentId[dbRow['학번']];
-              if (col) {
+          existingDbRows.forEach(dbRow => {
+            const sid = String(dbRow['학번'] ?? '').trim();
+            if (removedIdSet.has(sid)) {
+              const col = roleByStudentId[sid];
+              if (col && dbRow[col] !== null && dbRow[col] !== undefined) {
                 nullGroups[col].push({
                   '과목명': subject,
-                  '학번': dbRow['학번'],
+                  '학번': sid,
                   [col]: null
                 });
               }
-            });
+            }
+          });
 
-            for (const col of Object.keys(nullGroups)) {
-              if (nullGroups[col].length > 0) {
-                const { error: nullErr } = await supabaseClient
-                  .from('내부 테이블2')
-                  .upsert(nullGroups[col], { onConflict: '과목명,학번' });
-                if (nullErr) throw nullErr;
-              }
+          for (const col of Object.keys(nullGroups)) {
+            if (nullGroups[col].length > 0) {
+              const { error: nullErr } = await supabaseClient
+                .from('내부 테이블2')
+                .upsert(nullGroups[col], { onConflict: '과목명,학번' });
+              if (nullErr) throw nullErr;
             }
           }
         }
@@ -1164,42 +1244,37 @@
       }
 
       const assignedRows = getT1AssignedRows(teacher, subject);
-      const assignedIds = assignedRows.map(r => r['학번']);
       const roleByStudentId = {};
       assignedRows.forEach(r => {
-        if (r['1검교사'] === teacher) roleByStudentId[r['학번']] = '1검 결과';
-        else if (r['2검교사'] === teacher) roleByStudentId[r['학번']] = '2검 결과';
-        else if (r['3검교사'] === teacher) roleByStudentId[r['학번']] = '3검 결과';
+        const sid = String(r['학번']).trim();
+        if (r['1검교사'] === teacher) roleByStudentId[sid] = '1검 결과';
+        else if (r['2검교사'] === teacher) roleByStudentId[sid] = '2검 결과';
+        else if (r['3검교사'] === teacher) roleByStudentId[sid] = '3검 결과';
       });
 
-      const { data, error } = await supabaseClient
-        .from('내부 테이블2')
-        .select('*')
-        .eq('과목명', subject)
-        .in('학번', assignedIds);
+      try {
+        const data = await fetchAllRows('내부 테이블2', q => q.eq('과목명', subject));
+        const loaded = [];
+        data.forEach(row => {
+          const sid = String(row['학번'] ?? '').trim();
+          const col = roleByStudentId[sid];
+          if (col && row[col] !== null && row[col] !== undefined) {
+            loaded.push({
+              '과목명': subject,
+              '학번': sid,
+              '수정사항': String(row[col])
+            });
+          }
+        });
 
-      if (error) {
+        loaded.sort((a, b) => a['학번'].localeCompare(b['학번']));
+        t1Entries = loaded;
+        saveT1Local();
+        renderT1Table();
+        alert(`DB에서 ${loaded.length}건의 점검 내역을 불러왔습니다.`);
+      } catch (error) {
         alert('불러오기 오류: ' + error.message);
-        return;
       }
-
-      const loaded = [];
-      (data || []).forEach(row => {
-        const col = roleByStudentId[row['학번']];
-        if (col && row[col] !== null && row[col] !== undefined) {
-          loaded.push({
-            '과목명': subject,
-            '학번': row['학번'],
-            '수정사항': row[col]
-          });
-        }
-      });
-
-      loaded.sort((a, b) => a['학번'].localeCompare(b['학번']));
-      t1Entries = loaded;
-      saveT1Local();
-      renderT1Table();
-      alert(`DB에서 ${loaded.length}건의 점검 내역을 불러왔습니다.`);
     }
 
     /*************************************************************************
@@ -1227,7 +1302,7 @@
       const set = new Set();
       if (teacher) {
         masterTable1.forEach(r => {
-          if (r['입력주체교사'] === teacher) set.add(r['과목명']);
+          if (r['입력주체교사'] === teacher && r['과목명']) set.add(r['과목명']);
         });
       }
       const subjects = Array.from(set).sort((a, b) => a.localeCompare(b, 'ko'));
@@ -1282,25 +1357,26 @@
 
       t2Table2Cache = {};
       if (supabaseClient && targetRows.length > 0) {
-        const subjects = Array.from(new Set(targetRows.map(r => r['과목명'])));
-        const { data: t2Data } = await supabaseClient
-          .from('내부 테이블2')
-          .select('*')
-          .in('과목명', subjects);
-        (t2Data || []).forEach(r => {
-          t2Table2Cache[`${r['과목명']}||${r['학번']}`] = r;
-        });
+        try {
+          const subjects = Array.from(new Set(targetRows.map(r => r['과목명'])));
+          const [t2Data, t3Data] = await Promise.all([
+            fetchAllRows('내부 테이블2', q => q.in('과목명', subjects)),
+            fetchAllRows('내부 테이블3', q => q.in('과목명', subjects))
+          ]);
 
-        const { data: t3Data } = await supabaseClient
-          .from('내부 테이블3')
-          .select('*')
-          .in('과목명', subjects);
-        (t3Data || []).forEach(r => {
-          const key = `${r['과목명']}||${r['학번']}`;
-          if (!t2StatusMap[key]) {
-            t2StatusMap[key] = r['점검 상태'];
-          }
-        });
+          t2Data.forEach(r => {
+            t2Table2Cache[`${String(r['과목명']).trim()}||${String(r['학번']).trim()}`] = r;
+          });
+
+          t3Data.forEach(r => {
+            const key = `${String(r['과목명']).trim()}||${String(r['학번']).trim()}`;
+            if (!t2StatusMap[key]) {
+              t2StatusMap[key] = r['점검 상태'];
+            }
+          });
+        } catch (err) {
+          console.error('2번 탭 DB 조회 오류:', err);
+        }
       }
 
       renderT2Table(targetRows);
@@ -1413,30 +1489,26 @@
         return;
       }
 
-      const subjects = Array.from(new Set(targetRows.map(r => r['과목명'])));
-      const { data, error } = await supabaseClient
-        .from('내부 테이블3')
-        .select('*')
-        .in('과목명', subjects);
+      try {
+        const subjects = Array.from(new Set(targetRows.map(r => r['과목명'])));
+        const data = await fetchAllRows('내부 테이블3', q => q.in('과목명', subjects));
 
-      if (error) {
+        const dbMap = {};
+        data.forEach(r => {
+          dbMap[`${String(r['과목명']).trim()}||${String(r['학번']).trim()}`] = r['점검 상태'];
+        });
+
+        targetRows.forEach(r => {
+          const key = `${r['과목명']}||${r['학번']}`;
+          t2StatusMap[key] = dbMap[key] || '점검중';
+        });
+
+        localStorage.setItem(`tab2_${teacher}`, JSON.stringify(t2StatusMap));
+        renderT2Table(targetRows);
+        alert('DB("내부 테이블3")에서 최신 점검 상태를 불러와 덮어썼습니다.');
+      } catch (error) {
         alert('불러오기 오류: ' + error.message);
-        return;
       }
-
-      const dbMap = {};
-      (data || []).forEach(r => {
-        dbMap[`${r['과목명']}||${r['학번']}`] = r['점검 상태'];
-      });
-
-      targetRows.forEach(r => {
-        const key = `${r['과목명']}||${r['학번']}`;
-        t2StatusMap[key] = dbMap[key] || '점검중';
-      });
-
-      localStorage.setItem(`tab2_${teacher}`, JSON.stringify(t2StatusMap));
-      renderT2Table(targetRows);
-      alert('DB("내부 테이블3")에서 최신 점검 상태를 불러와 덮어썼습니다.');
     }
 
     /*************************************************************************
@@ -1449,7 +1521,7 @@
 
       const set = new Set();
       masterTable1.forEach(r => {
-        if (r['학번'].startsWith(grade)) {
+        if (r['학번'].startsWith(grade) && r['과목명']) {
           set.add(r['과목명']);
         }
       });
@@ -1498,13 +1570,17 @@
       const t3Map = {};
 
       if (supabaseClient && baseRows.length > 0) {
-        const subjects = Array.from(new Set(baseRows.map(r => r['과목명'])));
-        const [{ data: d2 }, { data: d3 }] = await Promise.all([
-          supabaseClient.from('내부 테이블2').select('*').in('과목명', subjects),
-          supabaseClient.from('내부 테이블3').select('*').in('과목명', subjects)
-        ]);
-        (d2 || []).forEach(r => { t2Map[`${r['과목명']}||${r['학번']}`] = r; });
-        (d3 || []).forEach(r => { t3Map[`${r['과목명']}||${r['학번']}`] = r; });
+        try {
+          const subjects = Array.from(new Set(baseRows.map(r => r['과목명'])));
+          const [d2, d3] = await Promise.all([
+            fetchAllRows('내부 테이블2', q => q.in('과목명', subjects)),
+            fetchAllRows('내부 테이블3', q => q.in('과목명', subjects))
+          ]);
+          d2.forEach(r => { t2Map[`${String(r['과목명']).trim()}||${String(r['학번']).trim()}`] = r; });
+          d3.forEach(r => { t3Map[`${String(r['과목명']).trim()}||${String(r['학번']).trim()}`] = r; });
+        } catch (err) {
+          console.error('3번 탭 데이터 조회 오류:', err);
+        }
       }
 
       const isAllSubjects = subject === '전체과목';
@@ -1726,7 +1802,6 @@
       });
     }
 
-    // #####-@@@@@ 학번 범위 파싱 (종료 번호 도달 시 다음 반으로 이월)
     function parseT4StudentRange(rawStr, grade, endNum) {
       const tokens = rawStr.split(',').map(s => s.trim()).filter(Boolean);
       const result = new Set();
@@ -1839,7 +1914,6 @@
       }
     }
 
-    // 수정된 모든과목 일괄 반영 함수
     function t4BatchAllSubjects(grade, roleField) {
       const inputIdMap = {
         '1검교사': `t4RegC1_${grade}`,
@@ -1863,7 +1937,6 @@
       const effectiveEndNum = t4EndNum || 40;
       const otherCheckRoles = ['1검교사', '2검교사', '3검교사'].filter(c => c !== roleField);
 
-      // 1) 학번 범위가 입력되어 있는 경우: 등록된 모든 과목 × 입력 학번 범위 조합을 생성하거나 기존 행에 덮어쓰기
       if (rawIdRange) {
         let ids = [];
         try {
@@ -1878,7 +1951,6 @@
         const skippedSubjects = [];
 
         registeredSubjects.forEach(sub => {
-          // 해당 과목·학번 범위 내 다른 검수 차수(1·2·3검 중 나머지)에 동일 교사가 이미 배정되어 있는지 확인
           const hasConflict = ids.some(id => {
             const existing = rowMap.get(`${sub}||${id}`);
             return existing && otherCheckRoles.some(otherCol => existing[otherCol] === teacherName);
@@ -1917,7 +1989,6 @@
         }
         alert(msg);
       } else {
-        // 2) 학번 칸이 비어 있는 경우: 이미 미리보기에 생성된 해당 학년 전체 과목·학번에 일괄 반영
         const gradeRows = t4DraftTable1.filter(r => r['학번'].startsWith(String(grade)));
         if (gradeRows.length === 0) {
           alert('학번 범위를 입력한 뒤 버튼을 눌러 주세요.');
@@ -2015,7 +2086,6 @@
         return;
       }
 
-      // 검증(3-2): 교사 누락 확인
       const incompleteRow = t4DraftTable1.find(r =>
         !r['입력주체교사'] || !r['1검교사'] || !r['2검교사'] || !r['3검교사']
       );
@@ -2024,7 +2094,6 @@
         return;
       }
 
-      // 검증2: 1검, 2검, 3검 동일 교사 중복 지정 방지 (입력주체교사는 1·2·3검 중 한 명과 같아도 통과)
       const dupRow = t4DraftTable1.find(r => {
         const set = new Set([r['1검교사'], r['2검교사'], r['3검교사']]);
         return set.size < 3;
@@ -2034,7 +2103,6 @@
         return;
       }
 
-      // 검증(1) & (3-1): 학급 누락 확인
       if (!t4ClassCount) {
         alert('메인 인터페이스에서 학급 개수를 먼저 입력 후 확정해 주세요.');
         return;
@@ -2062,14 +2130,21 @@
           await supabaseClient.from('내부 테이블2').delete().neq('과목명', '');
           await supabaseClient.from('내부 테이블1').delete().neq('과목명', '');
 
-          const { error } = await supabaseClient.from('내부 테이블1').insert(t4DraftTable1);
-          if (error) throw error;
+          // 대용량 데이터 분할 전송 (500건 단위)
+          for (let i = 0; i < t4DraftTable1.length; i += 500) {
+            const chunk = t4DraftTable1.slice(i, i + 500);
+            const { error } = await supabaseClient.from('내부 테이블1').insert(chunk);
+            if (error) throw error;
+          }
           alert(`기존 자료 초기화 후 총 ${t4DraftTable1.length}건이 Supabase("내부 테이블1")에 전송되었습니다.`);
         } else {
-          const { error } = await supabaseClient
-            .from('내부 테이블1')
-            .upsert(t4DraftTable1, { onConflict: '과목명,학번' });
-          if (error) throw error;
+          for (let i = 0; i < t4DraftTable1.length; i += 500) {
+            const chunk = t4DraftTable1.slice(i, i + 500);
+            const { error } = await supabaseClient
+              .from('내부 테이블1')
+              .upsert(chunk, { onConflict: '과목명,학번' });
+            if (error) throw error;
+          }
           alert(`총 ${t4DraftTable1.length}건이 Supabase("내부 테이블1")에 누적 전송되었습니다.`);
         }
 
