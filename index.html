@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>교차 점검 통합 관리 시스템 v2.1</title>
+  <title>교차 점검 통합 관리 시스템 v3.0</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -165,7 +165,7 @@
     tbody tr:hover:not(.input-row) { background: #f8fafc; }
 
     /* =========================================================
-       1번 탭 (점검 계획 6주 달력 & 공지사항 표) 전용 스타일
+       1번 탭 (점검 계획 6주 달력 & 공지사항 블록·표·이미지) 스타일
        ========================================================= */
     .cal-table {
       width: 100%;
@@ -197,7 +197,6 @@
     .cal-table td:last-child { border-right: none; }
     .cal-table tbody tr:hover td { background: inherit; }
 
-    /* 달력 셀 강조 색상 */
     .cal-table td.tint-yellow { background: #fef9c3 !important; }
     .cal-table td.tint-red { background: #fee2e2 !important; }
     .cal-table td.tint-green { background: #dcfce7 !important; }
@@ -264,7 +263,6 @@
       color: #94a3b8;
     }
 
-    /* 공지사항 자유 규격 표 */
     .notice-table {
       width: 100%;
       border-collapse: collapse;
@@ -299,7 +297,6 @@
       font-weight: 400;
     }
 
-    /* 추가된 공지사항 블록(제목 · 안내글 · 이미지) 스타일 */
     .notice-title-editable {
       font-size: 1.05rem;
       font-weight: 700;
@@ -396,6 +393,21 @@
     .notice-img-caption:empty::before {
       content: '이미지 설명(캡션) 입력...';
       color: #94a3b8;
+    }
+
+    /* 아카이브 요약 통계 배지 바 */
+    .arc-meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      font-size: 0.86rem;
+      color: var(--secondary);
+      align-items: center;
     }
 
     .badge {
@@ -543,7 +555,7 @@
   <!-- 오버올 메인 인터페이스 -->
   <header>
     <div>
-      <h1>학교생활기록부 교차 점검 시스템 <span style="font-size:0.85rem; font-weight:500; color:#93c5fd;">v2.1</span></h1>
+      <h1>학교생활기록부 교차 점검 시스템 <span style="font-size:0.85rem; font-weight:500; color:#93c5fd;">v3.0</span></h1>
       <div class="status-bar">
         <span id="dbDot" class="dot"></span>
         <span id="dbStatusText">Supabase 연결 확인 중...</span>
@@ -555,22 +567,22 @@
     </div>
   </header>
 
-  <!-- 5개 메인 탭 메뉴 -->
+  <!-- 6개 메인 탭 메뉴 -->
   <nav class="tab-nav">
     <button class="tab-btn active" data-tab="tab0" onclick="switchTab('tab0')">1. 점검 계획 및 공지사항</button>
     <button class="tab-btn" data-tab="tab1" onclick="switchTab('tab1')">2. 점검교사 입력 공간 (1·2·3검)</button>
     <button class="tab-btn" data-tab="tab2" onclick="switchTab('tab2')">3. 입력주체교사 확인 및 수정</button>
     <button class="tab-btn" data-tab="tab3" onclick="switchTab('tab3')">4. 교무기획부 모니터링</button>
     <button class="tab-btn" data-tab="tab4" onclick="switchTab('tab4')">5. 기초자료 입력</button>
+    <button class="tab-btn" data-tab="tab5" onclick="switchTab('tab5')">6. 아카이브</button>
   </nav>
 
   <div class="container">
 
     <!-- =========================================================
-         1번 탭 (신규): 점검 계획(6주 달력) 및 공지사항(자유 표)
+         1번 탭(tab0): 점검 계획(6주 달력) 및 복수 공지사항(표·글·이미지)
          ========================================================= -->
     <section id="tab0" class="tab-content active">
-      <!-- 1) 달력 형식의 점검 계획 (6주 기간, 일~토) -->
       <div class="card">
         <div class="card-title">
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -609,7 +621,6 @@
         </div>
       </div>
 
-      <!-- 2) 공지사항 목록 (카드 단위로 아래에 무제한 추가 가능) -->
       <div id="planNoticesContainer"></div>
 
       <div style="text-align: center; margin-top: 8px;">
@@ -620,7 +631,7 @@
     </section>
 
     <!-- =========================================================
-         2번 탭: 점검교사의 입력 공간 (1검, 2검, 3검)
+         2번 탭(tab1): 점검교사의 입력 공간 (1검, 2검, 3검)
          ========================================================= -->
     <section id="tab1" class="tab-content">
       <div class="card">
@@ -666,14 +677,12 @@
               </tr>
             </thead>
             <tbody id="t1TableBody">
-              <!-- 2행: 입력 기준행 -->
               <tr class="input-row">
                 <td id="t1InputSubjectDisplay" style="font-weight:700; color:var(--primary);">-</td>
                 <td><input type="text" id="t1InputStudentId" placeholder="예: 10101 또는 10101-10130" style="width:100%;" oninput="onT1DraftInputChange()" onkeydown="if(event.key==='Enter') t1ApplyInput()" /></td>
                 <td><input type="text" id="t1InputComment" placeholder="공란 시 '이상 없음' 입력" style="width:100%;" oninput="onT1DraftInputChange()" onkeydown="if(event.key==='Enter') t1ApplyInput()" /></td>
                 <td><button class="btn btn-primary btn-sm" onclick="t1ApplyInput()">반영</button></td>
               </tr>
-              <!-- 3행부터 동적 렌더링 -->
             </tbody>
           </table>
         </div>
@@ -681,7 +690,7 @@
     </section>
 
     <!-- =========================================================
-         3번 탭: 입력주체교사의 점검 결과 확인 및 수정 탭
+         3번 탭(tab2): 입력주체교사의 점검 결과 확인 및 수정 탭
          ========================================================= -->
     <section id="tab2" class="tab-content">
       <div class="card">
@@ -734,7 +743,7 @@
     </section>
 
     <!-- =========================================================
-         4번 탭: 교무기획부 업무담당자를 위한 모니터링 탭
+         4번 탭(tab3): 교무기획부 업무담당자를 위한 모니터링 탭
          ========================================================= -->
     <section id="tab3" class="tab-content">
       <div class="card">
@@ -783,7 +792,7 @@
     </section>
 
     <!-- =========================================================
-         5번 탭: 기초자료 입력 탭
+         5번 탭(tab4): 기초자료 입력 탭
          ========================================================= -->
     <section id="tab4" class="tab-content">
       <div class="card">
@@ -888,6 +897,110 @@
       </div>
     </section>
 
+    <!-- =========================================================
+         6번 탭(tab5): 아카이브 (DB 백업·초기화 / 과거 조회 / DB 복원 / 삭제)
+         ========================================================= -->
+    <section id="tab5" class="tab-content">
+      <!-- 1) 현재 DB 아카이브 생성 및 초기화 / 파일 관리 -->
+      <div class="card">
+        <div class="card-title">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span>1) 아카이브 생성(DB 백업 후 초기화) 및 파일 관리</span>
+            <span class="help-text" id="arcStatusText" style="margin-top:0;">불러오는 중...</span>
+          </div>
+          <div class="control-bar" style="gap:6px;">
+            <button class="btn btn-outline btn-sm" onclick="loadArchiveJsonFromServer(true)">게시본 되돌리기</button>
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('arcJsonFileInput').click()">PC 파일 불러오기</button>
+            <input type="file" id="arcJsonFileInput" accept=".json,application/json" style="display:none;" onchange="importArchiveJsonFile(event)" />
+            <button class="btn btn-outline btn-sm" onclick="downloadArchiveJson()">archive.json 다운로드</button>
+          </div>
+        </div>
+
+        <div class="control-bar" style="justify-content: space-between;">
+          <div class="control-bar" style="flex:1;">
+            <div class="form-group" style="flex:1; min-width:240px;">
+              <label for="arcNewTitleInput">아카이브 회차명</label>
+              <input type="text" id="arcNewTitleInput" placeholder="예: 2026학년도 2학기 1차 교차점검" style="width:100%;" />
+            </div>
+            <div class="form-group" style="flex:1; min-width:200px;">
+              <label for="arcNewMemoInput">비고(선택)</label>
+              <input type="text" id="arcNewMemoInput" placeholder="간단한 메모 입력" style="width:100%;" />
+            </div>
+          </div>
+          <button class="btn btn-danger" onclick="createArchiveAndResetDb()">현재 DB 아카이브 다운로드 + DB 초기화</button>
+        </div>
+        <p class="help-text" style="margin-top:8px;">
+          버튼을 누르면 현재 Supabase의 <strong>내부 테이블 1·2·3</strong> 전체 기록이 기존 아카이브 목록에 추가되어 <strong>archive.json</strong>으로 다운로드되며, 동시에 DB의 <strong>내부 테이블 1·2·3</strong>이 초기화됩니다. 내려받은 <strong>archive.json</strong>을 GitHub에 업로드하면 6번 탭에서 언제든 조회할 수 있습니다.
+        </p>
+      </div>
+
+      <!-- 2) 보관된 아카이브 조회 · DB 덮어쓰기 · 삭제 -->
+      <div class="card">
+        <div class="card-title">
+          <span>2) 보관된 아카이브 열람 및 복원 · 삭제</span>
+          <div class="control-bar" style="gap:8px;">
+            <button class="btn btn-warning btn-sm" id="arcRestoreBtn" onclick="restoreArchiveToDb()">이 아카이브로 현재 DB 덮어쓰기</button>
+            <button class="btn btn-danger btn-sm" id="arcDeleteBtn" onclick="deleteSelectedArchive()">선택한 아카이브 삭제</button>
+          </div>
+        </div>
+
+        <div class="control-bar" style="margin-bottom: 12px;">
+          <div class="form-group" style="flex: 2; min-width: 260px;">
+            <label for="arcSelect">보관 회차 선택</label>
+            <select id="arcSelect" onchange="onArchiveSelectChange()" style="width:100%;">
+              <option value="">-- 보관된 아카이브가 없습니다 --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="arcGradeSelect">학년</label>
+            <select id="arcGradeSelect" onchange="onArchiveGradeChange()">
+              <option value="전체학년">전체학년</option>
+              <option value="1">1학년</option>
+              <option value="2">2학년</option>
+              <option value="3">3학년</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="arcSubjectSelect">과목</label>
+            <select id="arcSubjectSelect" onchange="renderArchiveView()">
+              <option value="전체과목">전체과목</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="arcTeacherSelect">교사</label>
+            <select id="arcTeacherSelect" onchange="renderArchiveView()">
+              <option value="전체교사">전체교사</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="arcMetaBar" class="arc-meta-bar" style="display:none;"></div>
+
+        <div class="sub-tabs">
+          <button class="sub-tab-btn active" id="arcSubBtnSummary" onclick="switchArcMode('summary')">요약 보기</button>
+          <button class="sub-tab-btn" id="arcSubBtnFull" onclick="switchArcMode('full')">전체 보기 (학생별 상세)</button>
+        </div>
+
+        <div id="arcSummaryView" class="table-wrap">
+          <table>
+            <thead id="arcSummaryHead"></thead>
+            <tbody id="arcSummaryBody">
+              <tr><td style="color:var(--muted); padding:24px;">보관된 아카이브를 선택해 주세요.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="arcFullView" class="table-wrap" style="display:none;">
+          <table>
+            <thead id="arcFullHead"></thead>
+            <tbody id="arcFullBody">
+              <tr><td style="color:var(--muted); padding:24px;">보관된 아카이브를 선택해 주세요.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
   </div>
 
   <!-- 수정 의견 상세 보기 팝업 모달 -->
@@ -944,15 +1057,15 @@
       version: '2.1',
       updatedAt: '',
       startDate: '',
-      calendar: {}, // { 'YYYY-MM-DD': { text: '...', color: '' | 'tint-yellow' | 'tint-red' | 'tint-green' | 'tint-blue' } }
-      notices: []   // [{ title, memo, hasTable, hasHeader, rows, images: [{ dataUrl, caption, width }] }]
+      calendar: {},
+      notices: []
     };
 
-    // 2번 탭(tab1) 상태: [{ 과목명, 학번, 수정사항 }] 및 현재 활성 교사/과목 추적
+    // 2번 탭(tab1) 상태
     let t1Entries = [];
     let t1ActiveTeacher = '';
     let t1ActiveSubject = '';
-    let t1SyncState = 'empty'; // 'empty' | 'draft' | 'partial' | 'submitted'
+    let t1SyncState = 'empty';
 
     // 3번 탭(tab2) 상태
     let t2StatusMap = {};
@@ -967,6 +1080,14 @@
     let t4Subjects = { 1: [], 2: [], 3: [] };
     let t4DraftTable1 = [];
 
+    // 6번 탭(tab5): 아카이브 상태 (archive.json 연동)
+    let archiveData = {
+      version: '3.0',
+      updatedAt: '',
+      archives: []
+    };
+    let arcMode = 'summary';
+
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
       return String(str)
@@ -977,12 +1098,16 @@
         .replace(/'/g, '&#39;');
     }
 
-    // 로컬 타임존(KST) 기준 YYYY-MM-DD 포맷 및 파싱 유틸
     function formatLocalYMD(date) {
       const y = date.getFullYear();
       const m = String(date.getMonth() + 1).padStart(2, '0');
       const d = String(date.getDate()).padStart(2, '0');
       return `${y}-${m}-${d}`;
+    }
+
+    function getFormattedNow() {
+      const now = new Date();
+      return `${formatLocalYMD(now)} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     }
 
     function parseLocalYMD(ymdStr) {
@@ -995,7 +1120,6 @@
       return new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay());
     }
 
-    // Supabase 기본 1,000행 제한을 우회하여 전체 행을 끝까지 가져오는 헬퍼
     async function fetchAllRows(tableName, applyFilterFn = null) {
       if (!supabaseClient) return [];
       const pageSize = 1000;
@@ -1020,7 +1144,6 @@
       return allData;
     }
 
-    // 컬럼명 띄어쓰기/별칭 및 공백 정규화
     function normalizeTable1Row(r) {
       return {
         '과목명': String(r['과목명'] ?? r['과목'] ?? r['교과목'] ?? '').trim(),
@@ -1029,6 +1152,24 @@
         '1검교사': String(r['1검교사'] ?? r['1검 교사'] ?? '').trim(),
         '2검교사': String(r['2검교사'] ?? r['2검 교사'] ?? '').trim(),
         '3검교사': String(r['3검교사'] ?? r['3검 교사'] ?? '').trim()
+      };
+    }
+
+    function normalizeTable2Row(r) {
+      return {
+        '과목명': String(r['과목명'] ?? '').trim(),
+        '학번': String(r['학번'] ?? '').trim(),
+        '1검 결과': r['1검 결과'] !== undefined ? r['1검 결과'] : null,
+        '2검 결과': r['2검 결과'] !== undefined ? r['2검 결과'] : null,
+        '3검 결과': r['3검 결과'] !== undefined ? r['3검 결과'] : null
+      };
+    }
+
+    function normalizeTable3Row(r) {
+      return {
+        '과목명': String(r['과목명'] ?? '').trim(),
+        '학번': String(r['학번'] ?? '').trim(),
+        '점검 상태': String(r['점검 상태'] ?? '점검중').trim()
       };
     }
 
@@ -1158,7 +1299,6 @@
       if (rawObj && Array.isArray(rawObj.notices)) {
         notices = rawObj.notices.map((item, idx) => normalizeNoticeItem(item, idx));
       } else if (rawObj && rawObj.noticeTable && Array.isArray(rawObj.noticeTable.rows)) {
-        // 기존 v2.0 단일 표 형식 호환 변환
         notices = [normalizeNoticeItem({
           title: '점검 관련 공지사항',
           memo: '',
@@ -1282,7 +1422,6 @@
       }
     }
 
-    /* ----- 복수 공지사항 카드 렌더링 및 조작 함수들 ----- */
     function buildNoticeTableHtml(nIdx, notice) {
       const { hasHeader, rows } = notice;
       let html = '';
@@ -1486,7 +1625,6 @@
       renderNoticeBlocks();
     }
 
-    /* ----- 이미지 파일 첨부 · Ctrl+V 붙여넣기 · 자동 용량 압축 ----- */
     function compressImageFileToDataUrl(file, maxWidth = 1100, quality = 0.85) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -1577,10 +1715,20 @@
       renderNoticeBlocks();
     }
 
-    function downloadPlanJson() {
-      const now = new Date();
-      const formattedNow = `${formatLocalYMD(now)} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    function triggerJsonDownload(obj, filename) {
+      const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
 
+    function downloadPlanJson() {
+      const formattedNow = getFormattedNow();
       const cleanCalendar = {};
       Object.entries(planData.calendar).forEach(([k, v]) => {
         if ((v.text && v.text.trim() !== '') || v.color) {
@@ -1596,16 +1744,7 @@
         notices: planData.notices
       };
 
-      const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'data.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
+      triggerJsonDownload(exportObj, 'data.json');
       document.getElementById('planStatusText').textContent = `data.json 다운로드 완료 (${formattedNow}) - GitHub에 업로드하세요`;
     }
 
@@ -1631,16 +1770,7 @@
     /*************************************************************************
      * 오버올 메인 인터페이스: 모든 자료 초기화 (비번: hdh2026)
      *************************************************************************/
-    async function resetAllSystemData() {
-      const pw = prompt('전체 자료 초기화를 위해 비밀번호를 입력하세요.');
-      if (pw === null) return;
-      if (pw !== 'hdh2026') {
-        alert('비밀번호가 일치하지 않습니다.');
-        return;
-      }
-      const ok = confirm('모든 데이터가 영구 삭제됩니다. 진행하시겠습니까?');
-      if (!ok) return;
-
+    function clearLocalWorkspacesKeepConfig() {
       const savedUrl = localStorage.getItem('sb_url');
       const savedKey = localStorage.getItem('sb_key');
       localStorage.clear();
@@ -1667,12 +1797,29 @@
       updateT4ConfigSummary();
       renderT4Bubbles();
       renderT4Preview();
+    }
+
+    async function clearSupabaseAllTables() {
+      await supabaseClient.from('내부 테이블3').delete().neq('과목명', '');
+      await supabaseClient.from('내부 테이블2').delete().neq('과목명', '');
+      await supabaseClient.from('내부 테이블1').delete().neq('과목명', '');
+    }
+
+    async function resetAllSystemData() {
+      const pw = prompt('전체 자료 초기화를 위해 비밀번호를 입력하세요.');
+      if (pw === null) return;
+      if (pw !== 'hdh2026') {
+        alert('비밀번호가 일치하지 않습니다.');
+        return;
+      }
+      const ok = confirm('모든 데이터가 영구 삭제됩니다. 진행하시겠습니까?');
+      if (!ok) return;
+
+      clearLocalWorkspacesKeepConfig();
 
       if (supabaseClient) {
         try {
-          await supabaseClient.from('내부 테이블3').delete().neq('과목명', '');
-          await supabaseClient.from('내부 테이블2').delete().neq('과목명', '');
-          await supabaseClient.from('내부 테이블1').delete().neq('과목명', '');
+          await clearSupabaseAllTables();
           await fetchMasterTable1();
           alert('로컬 데이터와 Supabase의 모든 자료가 초기화되었습니다.');
         } catch (err) {
@@ -1687,7 +1834,6 @@
      * 공통: 탭 전환 및 내부 테이블1 로드
      *************************************************************************/
     async function switchTab(tabId) {
-      // 탭 이동 직전 2번 탭(점검교사 입력 공간)의 현재 작업 내용(미반영 입력칸 포함) 로컬 자동 저장
       saveT1Local();
 
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
@@ -1700,6 +1846,8 @@
         await onT2SubjectChange();
       } else if (tabId === 'tab3') {
         await refreshTab3();
+      } else if (tabId === 'tab5') {
+        renderArchiveSelectOptions();
       }
     }
 
@@ -1719,7 +1867,7 @@
     }
 
     /*************************************************************************
-     * 2번 탭(tab1): 점검교사의 입력 공간 (1검, 2검, 3검) - 로컬 임시저장
+     * 2번 탭(tab1): 점검교사의 입력 공간 (1검, 2검, 3검)
      *************************************************************************/
     function getT1LocalRecord(teacher, subject) {
       if (!teacher || !subject) return null;
@@ -3043,6 +3191,14 @@
       renderT4Preview();
     }
 
+    async function insertChunkedRows(tableName, rows, chunkSize = 500) {
+      for (let i = 0; i < rows.length; i += chunkSize) {
+        const chunk = rows.slice(i, i + chunkSize);
+        const { error } = await supabaseClient.from(tableName).insert(chunk);
+        if (error) throw error;
+      }
+    }
+
     async function t4SendToSupabase(mode) {
       if (!supabaseClient) { alert('Supabase에 먼저 연결해 주세요.'); return; }
       if (t4DraftTable1.length === 0) {
@@ -3090,15 +3246,8 @@
       try {
         if (mode === 'reset') {
           if (!confirm('기존 DB의 모든 기초자료 및 점검 내역이 초기화되고 새 자료로 교체됩니다. 진행하시겠습니까?')) return;
-          await supabaseClient.from('내부 테이블3').delete().neq('과목명', '');
-          await supabaseClient.from('내부 테이블2').delete().neq('과목명', '');
-          await supabaseClient.from('내부 테이블1').delete().neq('과목명', '');
-
-          for (let i = 0; i < t4DraftTable1.length; i += 500) {
-            const chunk = t4DraftTable1.slice(i, i + 500);
-            const { error } = await supabaseClient.from('내부 테이블1').insert(chunk);
-            if (error) throw error;
-          }
+          await clearSupabaseAllTables();
+          await insertChunkedRows('내부 테이블1', t4DraftTable1, 500);
           alert(`기존 자료 초기화 후 총 ${t4DraftTable1.length}건이 Supabase("내부 테이블1")에 전송되었습니다.`);
         } else {
           for (let i = 0; i < t4DraftTable1.length; i += 500) {
@@ -3118,11 +3267,532 @@
     }
 
     /*************************************************************************
+     * 6번 탭(tab5): 아카이브 (DB 백업·초기화 / 과거 조회 / DB 덮어쓰기 / 삭제)
+     *************************************************************************/
+    function normalizeArchiveEntry(rawEntry, idx) {
+      const t1 = Array.isArray(rawEntry?.table1) ? rawEntry.table1.map(normalizeTable1Row) : [];
+      const t2 = Array.isArray(rawEntry?.table2) ? rawEntry.table2.map(normalizeTable2Row) : [];
+      const t3 = Array.isArray(rawEntry?.table3) ? rawEntry.table3.map(normalizeTable3Row) : [];
+
+      return {
+        id: String(rawEntry?.id ?? `arc_${Date.now()}_${idx}`),
+        title: String(rawEntry?.title ?? `보관된 점검 기록 ${idx + 1}`),
+        archivedAt: String(rawEntry?.archivedAt ?? ''),
+        memo: String(rawEntry?.memo ?? ''),
+        counts: {
+          t1: t1.length,
+          t2: t2.length,
+          t3: t3.length
+        },
+        table1: t1,
+        table2: t2,
+        table3: t3
+      };
+    }
+
+    function applyArchiveJsonObject(rawObj) {
+      let list = [];
+      if (rawObj && Array.isArray(rawObj.archives)) {
+        list = rawObj.archives.map((item, idx) => normalizeArchiveEntry(item, idx));
+      } else if (rawObj && Array.isArray(rawObj.table1)) {
+        // 단일 회차 JSON 파일일 경우도 자동 인식
+        list = [normalizeArchiveEntry(rawObj, 0)];
+      }
+
+      archiveData = {
+        version: '3.0',
+        updatedAt: String(rawObj?.updatedAt ?? ''),
+        archives: list
+      };
+
+      renderArchiveSelectOptions();
+    }
+
+    async function loadArchiveJsonFromServer(isManualReset = false) {
+      if (isManualReset && !confirm('현재 화면의 아카이브 목록을 버리고 GitHub에 게시된 archive.json 내용으로 되돌리시겠습니까?')) {
+        return;
+      }
+      const statusEl = document.getElementById('arcStatusText');
+      try {
+        const res = await fetch(`./archive.json?t=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        applyArchiveJsonObject(json);
+        const timeInfo = archiveData.updatedAt ? ` / 최근 갱신: ${archiveData.updatedAt}` : '';
+        statusEl.textContent = `게시본(archive.json) 불러옴: 총 ${archiveData.archives.length}건 보관 중${timeInfo}`;
+      } catch (e) {
+        if (!Array.isArray(archiveData.archives)) {
+          archiveData.archives = [];
+        }
+        renderArchiveSelectOptions();
+        statusEl.textContent = '게시된 archive.json 없음 (아카이브 생성 후 archive.json을 GitHub에 업로드하세요)';
+      }
+    }
+
+    function downloadArchiveJson() {
+      const formattedNow = getFormattedNow();
+      archiveData.updatedAt = formattedNow;
+      archiveData.version = '3.0';
+      triggerJsonDownload(archiveData, 'archive.json');
+      document.getElementById('arcStatusText').textContent = `archive.json 다운로드 완료 (${formattedNow}) - GitHub에 업로드하세요`;
+    }
+
+    function importArchiveJsonFile(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(String(e.target?.result || '{}'));
+          applyArchiveJsonObject(parsed);
+          document.getElementById('arcStatusText').textContent = `PC 파일(${file.name}) 불러옴: 총 ${archiveData.archives.length}건`;
+          alert(`선택한 파일에서 ${archiveData.archives.length}건의 아카이브 회차를 불러왔습니다.`);
+        } catch (err) {
+          alert('올바른 JSON 파일 형식이 아닙니다: ' + err.message);
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    }
+
+    // 현재 DB 백업(archive.json 누적 다운로드) + 동시 초기화
+    async function createArchiveAndResetDb() {
+      if (!supabaseClient) {
+        alert('Supabase에 먼저 연결해 주세요.');
+        return;
+      }
+
+      const rawTitle = document.getElementById('arcNewTitleInput').value.trim();
+      const title = rawTitle || `${getFormattedNow()} 교차점검 기록`;
+      const memo = document.getElementById('arcNewMemoInput').value.trim();
+
+      const pw = prompt(`[아카이브 생성 및 DB 초기화]\n'${title}' 이름으로 현재 DB를 백업한 뒤 내부 테이블 1·2·3을 모두 초기화합니다.\n진행하려면 비밀번호를 입력하세요.`);
+      if (pw === null) return;
+      if (pw !== 'hdh2026') {
+        alert('비밀번호가 일치하지 않습니다.');
+        return;
+      }
+
+      try {
+        const [raw1, raw2, raw3] = await Promise.all([
+          fetchAllRows('내부 테이블1'),
+          fetchAllRows('내부 테이블2'),
+          fetchAllRows('내부 테이블3')
+        ]);
+
+        const t1 = raw1.map(normalizeTable1Row);
+        const t2 = raw2.map(normalizeTable2Row);
+        const t3 = raw3.map(normalizeTable3Row);
+
+        if (t1.length === 0 && t2.length === 0 && t3.length === 0) {
+          alert('현재 Supabase DB에 아카이브할 데이터가 없습니다.');
+          return;
+        }
+
+        const ok = confirm(
+          `조회된 데이터: 기초자료 ${t1.length}건, 점검결과 ${t2.length}건, 진행상태 ${t3.length}건\n\n` +
+          `1) 기존 아카이브 목록(${archiveData.archives.length}건)에 새 회차를 추가하여 archive.json으로 다운로드하고,\n` +
+          `2) 현재 DB(내부 테이블 1·2·3) 및 로컬 임시저장을 모두 초기화합니다.\n\n계속하시겠습니까?`
+        );
+        if (!ok) return;
+
+        const nowStr = getFormattedNow();
+        const newEntry = {
+          id: `arc_${Date.now()}`,
+          title,
+          archivedAt: nowStr,
+          memo,
+          counts: {
+            t1: t1.length,
+            t2: t2.length,
+            t3: t3.length
+          },
+          table1: t1,
+          table2: t2,
+          table3: t3
+        };
+
+        // 최신 회차가 맨 위에 오도록 추가
+        archiveData.archives.unshift(newEntry);
+        archiveData.updatedAt = nowStr;
+
+        // 1) archive.json 다운로드 실행
+        downloadArchiveJson();
+
+        // 2) DB 및 로컬 작업공간 초기화
+        await clearSupabaseAllTables();
+        clearLocalWorkspacesKeepConfig();
+        await fetchMasterTable1();
+
+        document.getElementById('arcNewTitleInput').value = '';
+        document.getElementById('arcNewMemoInput').value = '';
+        renderArchiveSelectOptions(newEntry.id);
+
+        alert(
+          `'${title}' 아카이브가 포함된 archive.json 파일이 다운로드되었으며, 현재 DB(내부 테이블 1·2·3)가 초기화되었습니다.\n\n` +
+          `※ 다운로드된 archive.json 파일을 GitHub 저장소에 업로드해 주세요.`
+        );
+      } catch (err) {
+        alert('아카이브 생성 및 DB 초기화 중 오류가 발생했습니다: ' + err.message);
+      }
+    }
+
+    function getSelectedArchiveEntry() {
+      const id = document.getElementById('arcSelect')?.value;
+      if (!id) return null;
+      return archiveData.archives.find(a => a.id === id) || null;
+    }
+
+    function renderArchiveSelectOptions(preferId = null) {
+      const sel = document.getElementById('arcSelect');
+      if (!sel) return;
+      const prev = preferId || sel.value;
+
+      if (archiveData.archives.length === 0) {
+        sel.innerHTML = '<option value="">-- 보관된 아카이브가 없습니다 --</option>';
+        document.getElementById('arcRestoreBtn').disabled = true;
+        document.getElementById('arcDeleteBtn').disabled = true;
+        onArchiveSelectChange();
+        return;
+      }
+
+      document.getElementById('arcRestoreBtn').disabled = false;
+      document.getElementById('arcDeleteBtn').disabled = false;
+
+      sel.innerHTML = archiveData.archives.map(arc => {
+        const dateTag = arc.archivedAt ? `[${arc.archivedAt}] ` : '';
+        const countTag = ` (기초 ${arc.table1.length}건 / 점검 ${arc.table2.length}건)`;
+        return `<option value="${escapeHtml(arc.id)}">${escapeHtml(dateTag + arc.title + countTag)}</option>`;
+      }).join('');
+
+      if (archiveData.archives.some(a => a.id === prev)) {
+        sel.value = prev;
+      } else {
+        sel.value = archiveData.archives[0].id;
+      }
+      onArchiveSelectChange();
+    }
+
+    function onArchiveSelectChange() {
+      const arc = getSelectedArchiveEntry();
+      const metaBar = document.getElementById('arcMetaBar');
+
+      if (!arc) {
+        metaBar.style.display = 'none';
+        document.getElementById('arcSubjectSelect').innerHTML = '<option value="전체과목">전체과목</option>';
+        document.getElementById('arcTeacherSelect').innerHTML = '<option value="전체교사">전체교사</option>';
+        renderArchiveView();
+        return;
+      }
+
+      metaBar.style.display = 'flex';
+      metaBar.innerHTML = `
+        <span><strong>회차명:</strong> ${escapeHtml(arc.title)}</span>
+        <span>|</span>
+        <span><strong>보관일시:</strong> ${escapeHtml(arc.archivedAt || '-')}</span>
+        <span>|</span>
+        <span><strong>데이터 규모:</strong> 기초자료 ${arc.table1.length}명 · 점검결과 ${arc.table2.length}건 · 상태기록 ${arc.table3.length}건</span>
+        ${arc.memo ? `<span>|</span><span><strong>비고:</strong> ${escapeHtml(arc.memo)}</span>` : ''}
+      `;
+
+      // 교사 목록 채우기
+      const teacherSet = new Set();
+      arc.table1.forEach(r => {
+        if (r['입력주체교사']) teacherSet.add(r['입력주체교사']);
+        if (r['1검교사']) teacherSet.add(r['1검교사']);
+        if (r['2검교사']) teacherSet.add(r['2검교사']);
+        if (r['3검교사']) teacherSet.add(r['3검교사']);
+      });
+      const teachers = Array.from(teacherSet).sort((a, b) => a.localeCompare(b, 'ko'));
+      document.getElementById('arcTeacherSelect').innerHTML =
+        '<option value="전체교사">전체교사</option>' +
+        teachers.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+
+      onArchiveGradeChange();
+    }
+
+    function onArchiveGradeChange() {
+      const arc = getSelectedArchiveEntry();
+      const grade = document.getElementById('arcGradeSelect').value;
+      const subSel = document.getElementById('arcSubjectSelect');
+      const prev = subSel.value;
+
+      if (!arc) {
+        subSel.innerHTML = '<option value="전체과목">전체과목</option>';
+        renderArchiveView();
+        return;
+      }
+
+      const subSet = new Set();
+      arc.table1.forEach(r => {
+        if ((grade === '전체학년' || r['학번'].startsWith(grade)) && r['과목명']) {
+          subSet.add(r['과목명']);
+        }
+      });
+      const subjects = Array.from(subSet).sort((a, b) => a.localeCompare(b, 'ko'));
+      subSel.innerHTML = '<option value="전체과목">전체과목</option>' +
+        subjects.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+
+      if (prev === '전체과목' || subjects.includes(prev)) {
+        subSel.value = prev;
+      } else {
+        subSel.value = '전체과목';
+      }
+      renderArchiveView();
+    }
+
+    function switchArcMode(mode) {
+      arcMode = mode;
+      document.getElementById('arcSubBtnSummary').classList.toggle('active', mode === 'summary');
+      document.getElementById('arcSubBtnFull').classList.toggle('active', mode === 'full');
+      document.getElementById('arcSummaryView').style.display = mode === 'summary' ? 'block' : 'none';
+      document.getElementById('arcFullView').style.display = mode === 'full' ? 'block' : 'none';
+      renderArchiveView();
+    }
+
+    function renderArchiveView() {
+      const arc = getSelectedArchiveEntry();
+      const sumHead = document.getElementById('arcSummaryHead');
+      const sumBody = document.getElementById('arcSummaryBody');
+      const fullHead = document.getElementById('arcFullHead');
+      const fullBody = document.getElementById('arcFullBody');
+
+      if (!arc) {
+        sumHead.innerHTML = '';
+        sumBody.innerHTML = '<tr><td style="color:var(--muted); padding:24px;">보관된 아카이브가 없습니다.</td></tr>';
+        fullHead.innerHTML = '';
+        fullBody.innerHTML = '<tr><td style="color:var(--muted); padding:24px;">보관된 아카이브가 없습니다.</td></tr>';
+        return;
+      }
+
+      const grade = document.getElementById('arcGradeSelect').value;
+      const subject = document.getElementById('arcSubjectSelect').value;
+      const teacher = document.getElementById('arcTeacherSelect').value;
+
+      const baseRows = arc.table1
+        .filter(r =>
+          (grade === '전체학년' || r['학번'].startsWith(grade)) &&
+          (subject === '전체과목' || r['과목명'] === subject) &&
+          (teacher === '전체교사' ||
+            r['입력주체교사'] === teacher ||
+            r['1검교사'] === teacher ||
+            r['2검교사'] === teacher ||
+            r['3검교사'] === teacher)
+        )
+        .sort((a, b) => {
+          const s = a['과목명'].localeCompare(b['과목명'], 'ko');
+          return s !== 0 ? s : a['학번'].localeCompare(b['학번']);
+        });
+
+      const t2Map = {};
+      const t3Map = {};
+      arc.table2.forEach(r => { t2Map[`${r['과목명']}||${r['학번']}`] = r; });
+      arc.table3.forEach(r => { t3Map[`${r['과목명']}||${r['학번']}`] = r; });
+
+      // 1) 요약 보기 렌더링
+      sumHead.innerHTML = `
+        <tr>
+          <th>과목명</th>
+          <th>대상 인원</th>
+          <th>1검</th>
+          <th>2검</th>
+          <th>3검</th>
+          <th>최종 점검 상태</th>
+        </tr>
+      `;
+
+      if (baseRows.length === 0) {
+        sumBody.innerHTML = '<tr><td colspan="6" style="color:var(--muted); padding:24px;">조건에 해당하는 아카이브 기록이 없습니다.</td></tr>';
+      } else {
+        const grouped = new Map();
+        baseRows.forEach(r => {
+          if (!grouped.has(r['과목명'])) grouped.set(r['과목명'], []);
+          grouped.get(r['과목명']).push(r);
+        });
+
+        sumBody.innerHTML = Array.from(grouped.entries()).map(([subName, rows]) => {
+          let c1Done = 0, c1Miss = 0;
+          let c2Done = 0, c2Miss = 0;
+          let c3Done = 0, c3Miss = 0;
+          let finalRemain = 0;
+
+          rows.forEach(r => {
+            const key = `${r['과목명']}||${r['학번']}`;
+            const r2 = t2Map[key] || {};
+            const r3 = t3Map[key] || {};
+
+            if (r2['1검 결과'] !== null && r2['1검 결과'] !== undefined) c1Done++; else c1Miss++;
+            if (r2['2검 결과'] !== null && r2['2검 결과'] !== undefined) c2Done++; else c2Miss++;
+            if (r2['3검 결과'] !== null && r2['3검 결과'] !== undefined) c3Done++; else c3Miss++;
+
+            if (r3['점검 상태'] !== '이상 없음/수정 완료') {
+              finalRemain++;
+            }
+          });
+
+          const finalText = finalRemain === 0
+            ? `<span class="badge badge-done">전체 완료</span>`
+            : `<span class="badge badge-edit" style="cursor:default;">진행중(잔여 ${finalRemain}명)</span>`;
+
+          return `
+            <tr>
+              <td style="font-weight:700;">${escapeHtml(subName)}</td>
+              <td>${rows.length}명</td>
+              <td>완료(${c1Done}) / 미완료(${c1Miss})</td>
+              <td>완료(${c2Done}) / 미완료(${c2Miss})</td>
+              <td>완료(${c3Done}) / 미완료(${c3Miss})</td>
+              <td>${finalText}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // 2) 전체 보기 (학생별 상세) 렌더링
+      fullHead.innerHTML = `
+        <tr>
+          <th>과목명</th>
+          <th>학번</th>
+          <th>입력주체</th>
+          <th>1검 결과</th>
+          <th>2검 결과</th>
+          <th>3검 결과</th>
+          <th>최종 점검 상태</th>
+        </tr>
+      `;
+
+      if (baseRows.length === 0) {
+        fullBody.innerHTML = '<tr><td colspan="7" style="color:var(--muted); padding:24px;">조건에 해당하는 아카이브 기록이 없습니다.</td></tr>';
+      } else {
+        fullBody.innerHTML = baseRows.map(r => {
+          const key = `${r['과목명']}||${r['학번']}`;
+          const r2 = t2Map[key] || {};
+          const r3 = t3Map[key] || {};
+          const finalStatus = r3['점검 상태'] || '점검중';
+          const statusBadgeClass = finalStatus === '이상 없음/수정 완료'
+            ? 'badge-done'
+            : (finalStatus === '수정중' ? 'badge-edit' : 'badge-none');
+
+          return `
+            <tr>
+              <td>${escapeHtml(r['과목명'])}</td>
+              <td style="font-weight:600;">${escapeHtml(r['학번'])}</td>
+              <td>${escapeHtml(r['입력주체교사'])}</td>
+              <td>${renderResultBadge(r['과목명'], r['학번'], `1검(${r['1검교사'] || '-'})`, r2['1검 결과'])}</td>
+              <td>${renderResultBadge(r['과목명'], r['학번'], `2검(${r['2검교사'] || '-'})`, r2['2검 결과'])}</td>
+              <td>${renderResultBadge(r['과목명'], r['학번'], `3검(${r['3검교사'] || '-'})`, r2['3검 결과'])}</td>
+              <td><span class="badge ${statusBadgeClass}" style="cursor:default;">${escapeHtml(finalStatus)}</span></td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    // 선택한 아카이브 데이터로 현재 Supabase DB 덮어쓰기 (복원)
+    async function restoreArchiveToDb() {
+      if (!supabaseClient) {
+        alert('Supabase에 먼저 연결해 주세요.');
+        return;
+      }
+      const arc = getSelectedArchiveEntry();
+      if (!arc) {
+        alert('복원할 아카이브를 먼저 선택해 주세요.');
+        return;
+      }
+
+      const pw = prompt(
+        `[아카이브로 현재 DB 덮어쓰기]\n` +
+        `현재 Supabase DB(내부 테이블 1·2·3)의 모든 데이터를 지우고,\n` +
+        `선택한 '${arc.title}' 아카이브 데이터로 덮어씁니다.\n` +
+        `진행하려면 비밀번호를 입력하세요.`
+      );
+      if (pw === null) return;
+      if (pw !== 'hdh2026') {
+        alert('비밀번호가 일치하지 않습니다.');
+        return;
+      }
+
+      const ok = confirm(`정말로 현재 DB를 '${arc.title}' 내용으로 덮어쓰시겠습니까?`);
+      if (!ok) return;
+
+      try {
+        await clearSupabaseAllTables();
+        clearLocalWorkspacesKeepConfig();
+
+        const t1Payload = arc.table1.map(r => ({
+          '과목명': r['과목명'],
+          '학번': r['학번'],
+          '입력주체교사': r['입력주체교사'],
+          '1검교사': r['1검교사'],
+          '2검교사': r['2검교사'],
+          '3검교사': r['3검교사']
+        }));
+
+        const t2Payload = arc.table2.map(r => ({
+          '과목명': r['과목명'],
+          '학번': r['학번'],
+          '1검 결과': r['1검 결과'],
+          '2검 결과': r['2검 결과'],
+          '3검 결과': r['3검 결과']
+        }));
+
+        const t3Payload = arc.table3.map(r => ({
+          '과목명': r['과목명'],
+          '학번': r['학번'],
+          '점검 상태': r['점검 상태']
+        }));
+
+        if (t1Payload.length > 0) await insertChunkedRows('내부 테이블1', t1Payload, 500);
+        if (t2Payload.length > 0) await insertChunkedRows('내부 테이블2', t2Payload, 500);
+        if (t3Payload.length > 0) await insertChunkedRows('내부 테이블3', t3Payload, 500);
+
+        await fetchMasterTable1();
+        alert(`'${arc.title}' 아카이브 데이터(기초 ${t1Payload.length}건, 점검 ${t2Payload.length}건, 상태 ${t3Payload.length}건)가 현재 DB에 복원되었습니다.`);
+      } catch (err) {
+        alert('DB 덮어쓰기(복원) 중 오류가 발생했습니다: ' + err.message);
+      }
+    }
+
+    // 선택한 아카이브 삭제 기능
+    function deleteSelectedArchive() {
+      const arc = getSelectedArchiveEntry();
+      if (!arc) {
+        alert('삭제할 아카이브를 먼저 선택해 주세요.');
+        return;
+      }
+
+      const pw = prompt(
+        `[아카이브 삭제]\n선택한 '${arc.title}' 아카이브를 목록에서 삭제합니다.\n진행하려면 비밀번호를 입력하세요.`
+      );
+      if (pw === null) return;
+      if (pw !== 'hdh2026') {
+        alert('비밀번호가 일치하지 않습니다.');
+        return;
+      }
+
+      if (!confirm(`'${arc.title}' 아카이브를 정말 삭제하시겠습니까?`)) return;
+
+      archiveData.archives = archiveData.archives.filter(a => a.id !== arc.id);
+      archiveData.updatedAt = getFormattedNow();
+      renderArchiveSelectOptions();
+
+      document.getElementById('arcStatusText').textContent =
+        `아카이브 삭제됨 (남은 회차: ${archiveData.archives.length}건) - archive.json을 다운로드하여 GitHub에 반영하세요`;
+
+      if (confirm('삭제가 반영된 archive.json 파일을 지금 다운로드하시겠습니까?\n(다운로드한 파일을 GitHub에 업로드해야 최종 반영됩니다.)')) {
+        downloadArchiveJson();
+      }
+    }
+
+    /*************************************************************************
      * 초기 실행
      *************************************************************************/
     window.addEventListener('DOMContentLoaded', async () => {
       initTab4UI();
-      await loadPlanJsonFromServer(false);
+      await Promise.all([
+        loadPlanJsonFromServer(false),
+        loadArchiveJsonFromServer(false)
+      ]);
       if (initSupabase()) {
         await fetchMasterTable1();
       }
