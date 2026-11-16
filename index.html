@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>교차 점검 통합 관리 시스템 v2.0</title>
+  <title>교차 점검 통합 관리 시스템 v2.1</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -299,6 +299,105 @@
       font-weight: 400;
     }
 
+    /* 추가된 공지사항 블록(제목 · 안내글 · 이미지) 스타일 */
+    .notice-title-editable {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+      padding: 3px 8px;
+      border-radius: 5px;
+      outline: none;
+      min-width: 140px;
+    }
+    .notice-title-editable:hover { background: #f1f5f9; }
+    .notice-title-editable:focus {
+      background: #eff6ff;
+      box-shadow: inset 0 0 0 1.5px var(--primary);
+    }
+    .notice-title-editable:empty:focus::before {
+      content: '공지 제목 입력...';
+      color: #94a3b8;
+    }
+
+    .notice-memo-box {
+      font-size: 0.92rem;
+      line-height: 1.55;
+      color: var(--text);
+      padding: 6px 8px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      outline: none;
+    }
+    .notice-memo-box:hover { background: #f8fafc; }
+    .notice-memo-box:focus {
+      background: #eff6ff;
+      box-shadow: inset 0 0 0 1.5px var(--primary);
+    }
+    .notice-memo-box:empty {
+      padding: 3px 8px;
+      margin-bottom: 6px;
+    }
+    .notice-memo-box:empty::before {
+      content: '+ 안내 문구 입력 (클릭하여 작성, 미입력 시 공백)';
+      color: #cbd5e1;
+      font-size: 0.82rem;
+    }
+    .notice-memo-box:empty:focus::before {
+      content: '안내 내용을 입력하세요...';
+      color: #94a3b8;
+    }
+
+    .notice-img-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 12px;
+    }
+    .notice-img-item {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      background: #f8fafc;
+    }
+    .notice-img-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .notice-img-wrap {
+      text-align: center;
+      overflow-x: auto;
+    }
+    .notice-img-wrap img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      display: inline-block;
+    }
+    .notice-img-caption {
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: var(--secondary);
+      text-align: center;
+      padding: 4px 8px;
+      border-radius: 4px;
+      outline: none;
+    }
+    .notice-img-caption:focus {
+      background: #fff;
+      box-shadow: inset 0 0 0 1.5px var(--primary);
+    }
+    .notice-img-caption:empty::before {
+      content: '이미지 설명(캡션) 입력...';
+      color: #94a3b8;
+    }
+
     .badge {
       display: inline-block;
       padding: 3px 9px;
@@ -444,7 +543,7 @@
   <!-- 오버올 메인 인터페이스 -->
   <header>
     <div>
-      <h1>학교생활기록부 교차 점검 시스템 <span style="font-size:0.85rem; font-weight:500; color:#93c5fd;">v2.0</span></h1>
+      <h1>학교생활기록부 교차 점검 시스템 <span style="font-size:0.85rem; font-weight:500; color:#93c5fd;">v2.1</span></h1>
       <div class="status-bar">
         <span id="dbDot" class="dot"></span>
         <span id="dbStatusText">Supabase 연결 확인 중...</span>
@@ -510,27 +609,13 @@
         </div>
       </div>
 
-      <!-- 2) 표 형식의 공지사항 (자유 규격 조절) -->
-      <div class="card">
-        <div class="card-title">
-          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <span>점검 관련 공지사항</span>
-            <span class="help-text" id="noticeSizeInfo" style="margin-top:0;"></span>
-          </div>
-          <div class="control-bar" style="gap:6px;">
-            <label style="display:inline-flex; align-items:center; gap:4px; margin-right:6px; cursor:pointer; font-size:0.83rem;">
-              <input type="checkbox" id="noticeHasHeaderChk" checked onchange="toggleNoticeHeaderRow(this.checked)" />
-              첫 행 제목줄 강조
-            </label>
-            <button class="btn btn-outline btn-sm" onclick="addNoticeRow()">+ 행 추가</button>
-            <button class="btn btn-outline btn-sm" onclick="removeNoticeRow()">- 행 삭제</button>
-            <button class="btn btn-outline btn-sm" onclick="addNoticeCol()">+ 열 추가</button>
-            <button class="btn btn-outline btn-sm" onclick="removeNoticeCol()">- 열 삭제</button>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table class="notice-table" id="planNoticeTable"></table>
-        </div>
+      <!-- 2) 공지사항 목록 (카드 단위로 아래에 무제한 추가 가능) -->
+      <div id="planNoticesContainer"></div>
+
+      <div style="text-align: center; margin-top: 8px;">
+        <button type="button" class="btn btn-outline" style="width: 100%; padding: 12px; border-style: dashed; border-width: 2px; color: var(--primary); font-size: 0.95rem;" onclick="addNoticeBlock()">
+          + 공지사항 추가하기 (표 · 안내글 · 이미지 게시)
+        </button>
       </div>
     </section>
 
@@ -854,20 +939,13 @@
     let supabaseClient = null;
     let masterTable1 = []; // Supabase "내부 테이블1" 전체 캐시
 
-    // 1번 탭(tab0): 점검 계획 및 공지사항 (data.json 연동)
+    // 1번 탭(tab0): 점검 계획 및 공지사항 배열 (data.json 연동)
     let planData = {
-      version: '2.0',
+      version: '2.1',
       updatedAt: '',
       startDate: '',
       calendar: {}, // { 'YYYY-MM-DD': { text: '...', color: '' | 'tint-yellow' | 'tint-red' | 'tint-green' | 'tint-blue' } }
-      noticeTable: {
-        hasHeader: true,
-        rows: [
-          ['구분', '대상 교사', '주요 안내 사항'],
-          ['1·2·3검 입력', '점검교사', '2번 탭에서 교사·과목 선택 후 점검 결과 입력 및 [제출 (DB 저장)] 클릭'],
-          ['확인 및 수정', '입력주체교사', '3번 탭에서 수정 의견 확인·반영 후 점검 상태 변경 및 [결과 제출] 클릭']
-        ]
-      }
+      notices: []   // [{ title, memo, hasTable, hasHeader, rows, images: [{ dataUrl, caption, width }] }]
     };
 
     // 2번 탭(tab1) 상태: [{ 과목명, 학번, 수정사항 }] 및 현재 활성 교사/과목 추적
@@ -1005,8 +1083,58 @@
     }
 
     /*************************************************************************
-     * 1번 탭(tab0): 점검 계획(6주 달력) 및 공지사항(자유 규격 표) & data.json
+     * 1번 탭(tab0): 점검 계획(6주 달력) 및 복수 공지사항(표·글·이미지) & data.json
      *************************************************************************/
+    function createDefaultNoticeItem(idx = 1) {
+      return {
+        title: `점검 관련 공지사항 ${idx}`,
+        memo: '',
+        hasTable: true,
+        hasHeader: true,
+        rows: [
+          ['구분', '대상 교사', '주요 안내 사항'],
+          ['1·2·3검 입력', '점검교사', '2번 탭에서 교사·과목 선택 후 점검 결과 입력 및 [제출 (DB 저장)] 클릭'],
+          ['확인 및 수정', '입력주체교사', '3번 탭에서 수정 의견 확인·반영 후 점검 상태 변경 및 [결과 제출] 클릭']
+        ],
+        images: []
+      };
+    }
+
+    function normalizeNoticeItem(rawItem, idx) {
+      const defaultRows = [
+        ['항목', '내용'],
+        ['', '']
+      ];
+      let rows = defaultRows;
+      if (rawItem && Array.isArray(rawItem.rows) && rawItem.rows.length > 0) {
+        const maxCols = Math.max(1, ...rawItem.rows.map(r => Array.isArray(r) ? r.length : 0));
+        rows = rawItem.rows.map(r => {
+          const arr = Array.isArray(r) ? r.map(c => String(c ?? '')) : [''];
+          while (arr.length < maxCols) arr.push('');
+          return arr;
+        });
+      }
+
+      const images = Array.isArray(rawItem?.images)
+        ? rawItem.images
+            .filter(img => img && typeof img.dataUrl === 'string' && img.dataUrl.startsWith('data:image/'))
+            .map(img => ({
+              dataUrl: img.dataUrl,
+              caption: String(img.caption ?? ''),
+              width: ['100%', '75%', '50%', '35%'].includes(img.width) ? img.width : '75%'
+            }))
+        : [];
+
+      return {
+        title: String(rawItem?.title ?? `점검 관련 공지사항 ${idx + 1}`),
+        memo: String(rawItem?.memo ?? ''),
+        hasTable: rawItem?.hasTable !== false,
+        hasHeader: rawItem?.hasHeader !== false,
+        rows,
+        images
+      };
+    }
+
     function applyPlanJsonObject(rawObj) {
       const todaySun = getSundayOfWeek(new Date());
       const parsedStart = parseLocalYMD(rawObj?.startDate);
@@ -1026,35 +1154,34 @@
         });
       }
 
-      let rows = [
-        ['구분', '대상 교사', '주요 안내 사항'],
-        ['1·2·3검 입력', '점검교사', '2번 탭에서 교사·과목 선택 후 점검 결과 입력 및 [제출 (DB 저장)] 클릭'],
-        ['확인 및 수정', '입력주체교사', '3번 탭에서 수정 의견 확인·반영 후 점검 상태 변경 및 [결과 제출] 클릭']
-      ];
-      let hasHeader = true;
-
-      if (rawObj && rawObj.noticeTable && Array.isArray(rawObj.noticeTable.rows) && rawObj.noticeTable.rows.length > 0) {
-        const maxCols = Math.max(1, ...rawObj.noticeTable.rows.map(r => Array.isArray(r) ? r.length : 0));
-        rows = rawObj.noticeTable.rows.map(r => {
-          const arr = Array.isArray(r) ? r.map(c => String(c ?? '')) : [''];
-          while (arr.length < maxCols) arr.push('');
-          return arr;
-        });
-        hasHeader = rawObj.noticeTable.hasHeader !== false;
+      let notices = [];
+      if (rawObj && Array.isArray(rawObj.notices)) {
+        notices = rawObj.notices.map((item, idx) => normalizeNoticeItem(item, idx));
+      } else if (rawObj && rawObj.noticeTable && Array.isArray(rawObj.noticeTable.rows)) {
+        // 기존 v2.0 단일 표 형식 호환 변환
+        notices = [normalizeNoticeItem({
+          title: '점검 관련 공지사항',
+          memo: '',
+          hasTable: true,
+          hasHeader: rawObj.noticeTable.hasHeader,
+          rows: rawObj.noticeTable.rows,
+          images: []
+        }, 0)];
+      } else {
+        notices = [createDefaultNoticeItem(1)];
       }
 
       planData = {
-        version: '2.0',
+        version: '2.1',
         updatedAt: String(rawObj?.updatedAt ?? ''),
         startDate: formatLocalYMD(effectiveSun),
         calendar: normalizedCal,
-        noticeTable: { hasHeader, rows }
+        notices
       };
 
       document.getElementById('planStartDate').value = planData.startDate;
-      document.getElementById('noticeHasHeaderChk').checked = planData.noticeTable.hasHeader;
       renderPlanCalendar();
-      renderNoticeTable();
+      renderNoticeBlocks();
     }
 
     async function loadPlanJsonFromServer(isManualReset = false) {
@@ -1070,7 +1197,6 @@
         const timeInfo = planData.updatedAt ? ` (게시일시: ${planData.updatedAt})` : '';
         statusEl.textContent = `게시본(data.json) 적용됨${timeInfo}`;
       } catch (e) {
-        // data.json이 아직 업로드되지 않았거나 로컬 file:// 실행 시 기본 양식 표시
         if (!planData.startDate) {
           applyPlanJsonObject({});
         }
@@ -1156,14 +1282,9 @@
       }
     }
 
-    function renderNoticeTable() {
-      const table = document.getElementById('planNoticeTable');
-      const { hasHeader, rows } = planData.noticeTable;
-      const rowCount = rows.length;
-      const colCount = rows[0]?.length || 1;
-
-      document.getElementById('noticeSizeInfo').textContent = `현재 규격: ${rowCount}행 × ${colCount}열`;
-
+    /* ----- 복수 공지사항 카드 렌더링 및 조작 함수들 ----- */
+    function buildNoticeTableHtml(nIdx, notice) {
+      const { hasHeader, rows } = notice;
       let html = '';
       rows.forEach((row, rIdx) => {
         const isHeaderRow = hasHeader && rIdx === 0;
@@ -1173,62 +1294,293 @@
         html += '<tr>';
         row.forEach((cellVal, cIdx) => {
           const tag = isHeaderRow ? 'th' : 'td';
-          html += `<${tag} contenteditable="true" oninput="onNoticeCellInput(${rIdx}, ${cIdx}, this)">${escapeHtml(cellVal)}</${tag}>`;
+          html += `<${tag} contenteditable="true" oninput="onNoticeCellInput(${nIdx}, ${rIdx}, ${cIdx}, this)">${escapeHtml(cellVal)}</${tag}>`;
         });
         html += '</tr>';
 
         if (rIdx === 0 && isHeaderRow) html += '</thead>';
         if (rIdx === rows.length - 1) html += '</tbody>';
       });
-      table.innerHTML = html;
+      return html;
     }
 
-    function onNoticeCellInput(rIdx, cIdx, el) {
-      if (planData.noticeTable.rows[rIdx]) {
-        planData.noticeTable.rows[rIdx][cIdx] = el.innerText.replace(/\r\n/g, '\n');
+    function renderNoticeBlocks() {
+      const container = document.getElementById('planNoticesContainer');
+      if (!container) return;
+
+      if (planData.notices.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = planData.notices.map((notice, nIdx) => {
+        const rowCount = notice.rows.length;
+        const colCount = notice.rows[0]?.length || 1;
+
+        const imagesHtml = notice.images.length > 0
+          ? `<div class="notice-img-list">
+              ${notice.images.map((img, iIdx) => `
+                <div class="notice-img-item">
+                  <div class="notice-img-toolbar">
+                    <span class="help-text" style="margin-top:0;">첨부 이미지 ${iIdx + 1}</span>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <label style="font-size:0.8rem;">표시 크기</label>
+                      <select style="padding:3px 8px; font-size:0.8rem;" onchange="updateNoticeImageWidth(${nIdx}, ${iIdx}, this.value)">
+                        <option value="100%" ${img.width === '100%' ? 'selected' : ''}>전체 (100%)</option>
+                        <option value="75%" ${img.width === '75%' ? 'selected' : ''}>크게 (75%)</option>
+                        <option value="50%" ${img.width === '50%' ? 'selected' : ''}>보통 (50%)</option>
+                        <option value="35%" ${img.width === '35%' ? 'selected' : ''}>작게 (35%)</option>
+                      </select>
+                      <button type="button" class="btn btn-danger btn-sm" onclick="removeNoticeImage(${nIdx}, ${iIdx})">이미지 삭제</button>
+                    </div>
+                  </div>
+                  <div class="notice-img-wrap">
+                    <img src="${img.dataUrl}" style="width:${img.width};" alt="공지 첨부 이미지 ${iIdx + 1}" />
+                  </div>
+                  <div class="notice-img-caption" contenteditable="true" oninput="updateNoticeImageCaption(${nIdx}, ${iIdx}, this)">${escapeHtml(img.caption)}</div>
+                </div>
+              `).join('')}
+            </div>`
+          : '';
+
+        return `
+          <div class="card" onpaste="handleNoticePaste(event, ${nIdx})">
+            <div class="card-title">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <div class="notice-title-editable" contenteditable="true" oninput="onNoticeTitleInput(${nIdx}, this)">${escapeHtml(notice.title)}</div>
+                ${notice.hasTable ? `<span class="help-text" style="margin-top:0;">(${rowCount}행 × ${colCount}열)</span>` : ''}
+              </div>
+              <div class="control-bar" style="gap:6px;">
+                <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:0.82rem;">
+                  <input type="checkbox" ${notice.hasTable ? 'checked' : ''} onchange="toggleNoticeTableVisible(${nIdx}, this.checked)" />
+                  표 사용
+                </label>
+                ${notice.hasTable ? `
+                  <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:0.82rem;">
+                    <input type="checkbox" ${notice.hasHeader ? 'checked' : ''} onchange="toggleNoticeHeaderRow(${nIdx}, this.checked)" />
+                    제목줄
+                  </label>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="addNoticeRow(${nIdx})">+ 행</button>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="removeNoticeRow(${nIdx})">- 행</button>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="addNoticeCol(${nIdx})">+ 열</button>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="removeNoticeCol(${nIdx})">- 열</button>
+                ` : ''}
+                <button type="button" class="btn btn-outline btn-sm" title="클립보드 이미지 Ctrl+V 붙여넣기도 가능" onclick="document.getElementById('noticeImgInput_${nIdx}').click()">+ 이미지</button>
+                <input type="file" id="noticeImgInput_${nIdx}" accept="image/*" multiple style="display:none;" onchange="handleNoticeImageUpload(event, ${nIdx})" />
+                <button type="button" class="btn btn-outline btn-sm" title="위로 이동" onclick="moveNoticeBlock(${nIdx}, -1)" ${nIdx === 0 ? 'disabled' : ''}>▲</button>
+                <button type="button" class="btn btn-outline btn-sm" title="아래로 이동" onclick="moveNoticeBlock(${nIdx}, 1)" ${nIdx === planData.notices.length - 1 ? 'disabled' : ''}>▼</button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="removeNoticeBlock(${nIdx})">삭제</button>
+              </div>
+            </div>
+
+            <div class="notice-memo-box" contenteditable="true" oninput="onNoticeMemoInput(${nIdx}, this)">${escapeHtml(notice.memo)}</div>
+
+            ${notice.hasTable ? `
+              <div class="table-wrap">
+                <table class="notice-table">${buildNoticeTableHtml(nIdx, notice)}</table>
+              </div>
+            ` : ''}
+
+            ${imagesHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function addNoticeBlock() {
+      const nextNum = planData.notices.length + 1;
+      planData.notices.push({
+        title: `점검 관련 공지사항 ${nextNum}`,
+        memo: '',
+        hasTable: true,
+        hasHeader: true,
+        rows: [
+          ['구분', '내용', '비고'],
+          ['', '', '']
+        ],
+        images: []
+      });
+      renderNoticeBlocks();
+    }
+
+    function removeNoticeBlock(nIdx) {
+      if (!confirm(`'${planData.notices[nIdx]?.title || '해당 공지사항'}' 카드를 삭제하시겠습니까?`)) return;
+      planData.notices.splice(nIdx, 1);
+      renderNoticeBlocks();
+    }
+
+    function moveNoticeBlock(nIdx, dir) {
+      const targetIdx = nIdx + dir;
+      if (targetIdx < 0 || targetIdx >= planData.notices.length) return;
+      const temp = planData.notices[nIdx];
+      planData.notices[nIdx] = planData.notices[targetIdx];
+      planData.notices[targetIdx] = temp;
+      renderNoticeBlocks();
+    }
+
+    function onNoticeTitleInput(nIdx, el) {
+      if (planData.notices[nIdx]) {
+        planData.notices[nIdx].title = el.innerText.replace(/\r?\n/g, ' ');
       }
     }
 
-    function toggleNoticeHeaderRow(checked) {
-      planData.noticeTable.hasHeader = checked;
-      renderNoticeTable();
+    function onNoticeMemoInput(nIdx, el) {
+      if (planData.notices[nIdx]) {
+        planData.notices[nIdx].memo = el.innerText.replace(/\r\n/g, '\n');
+      }
     }
 
-    function addNoticeRow() {
-      const colCount = planData.noticeTable.rows[0]?.length || 3;
-      planData.noticeTable.rows.push(Array(colCount).fill(''));
-      renderNoticeTable();
+    function toggleNoticeTableVisible(nIdx, checked) {
+      if (!planData.notices[nIdx]) return;
+      planData.notices[nIdx].hasTable = checked;
+      renderNoticeBlocks();
     }
 
-    function removeNoticeRow() {
-      if (planData.noticeTable.rows.length <= 1) {
+    function onNoticeCellInput(nIdx, rIdx, cIdx, el) {
+      if (planData.notices[nIdx]?.rows[rIdx]) {
+        planData.notices[nIdx].rows[rIdx][cIdx] = el.innerText.replace(/\r\n/g, '\n');
+      }
+    }
+
+    function toggleNoticeHeaderRow(nIdx, checked) {
+      if (!planData.notices[nIdx]) return;
+      planData.notices[nIdx].hasHeader = checked;
+      renderNoticeBlocks();
+    }
+
+    function addNoticeRow(nIdx) {
+      const notice = planData.notices[nIdx];
+      if (!notice) return;
+      const colCount = notice.rows[0]?.length || 3;
+      notice.rows.push(Array(colCount).fill(''));
+      renderNoticeBlocks();
+    }
+
+    function removeNoticeRow(nIdx) {
+      const notice = planData.notices[nIdx];
+      if (!notice) return;
+      if (notice.rows.length <= 1) {
         alert('최소 1개 이상의 행은 유지되어야 합니다.');
         return;
       }
-      planData.noticeTable.rows.pop();
-      renderNoticeTable();
+      notice.rows.pop();
+      renderNoticeBlocks();
     }
 
-    function addNoticeCol() {
-      planData.noticeTable.rows.forEach(r => r.push(''));
-      renderNoticeTable();
+    function addNoticeCol(nIdx) {
+      const notice = planData.notices[nIdx];
+      if (!notice) return;
+      notice.rows.forEach(r => r.push(''));
+      renderNoticeBlocks();
     }
 
-    function removeNoticeCol() {
-      const colCount = planData.noticeTable.rows[0]?.length || 1;
+    function removeNoticeCol(nIdx) {
+      const notice = planData.notices[nIdx];
+      if (!notice) return;
+      const colCount = notice.rows[0]?.length || 1;
       if (colCount <= 1) {
         alert('최소 1개 이상의 열은 유지되어야 합니다.');
         return;
       }
-      planData.noticeTable.rows.forEach(r => r.pop());
-      renderNoticeTable();
+      notice.rows.forEach(r => r.pop());
+      renderNoticeBlocks();
+    }
+
+    /* ----- 이미지 파일 첨부 · Ctrl+V 붙여넣기 · 자동 용량 압축 ----- */
+    function compressImageFileToDataUrl(file, maxWidth = 1100, quality = 0.85) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('이미지 파일을 읽을 수 없습니다.'));
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onerror = () => reject(new Error('올바른 이미지 형식이 아닙니다.'));
+          img.onload = () => {
+            let w = img.width;
+            let h = img.height;
+            if (w > maxWidth) {
+              h = Math.round((h * maxWidth) / w);
+              w = maxWidth;
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.src = String(e.target?.result || '');
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function appendImagesToNotice(nIdx, fileList) {
+      const notice = planData.notices[nIdx];
+      if (!notice || !fileList || fileList.length === 0) return;
+
+      try {
+        for (const file of fileList) {
+          if (!file.type.startsWith('image/')) continue;
+          const dataUrl = await compressImageFileToDataUrl(file);
+          notice.images.push({
+            dataUrl,
+            caption: '',
+            width: '75%'
+          });
+        }
+        renderNoticeBlocks();
+      } catch (err) {
+        alert('이미지 처리 중 오류가 발생했습니다: ' + err.message);
+      }
+    }
+
+    async function handleNoticeImageUpload(event, nIdx) {
+      const files = Array.from(event.target.files || []);
+      await appendImagesToNotice(nIdx, files);
+      event.target.value = '';
+    }
+
+    async function handleNoticePaste(event, nIdx) {
+      const items = event.clipboardData?.items;
+      if (!items) return;
+      const imageFiles = [];
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const f = item.getAsFile();
+          if (f) imageFiles.push(f);
+        }
+      }
+      if (imageFiles.length > 0) {
+        event.preventDefault();
+        await appendImagesToNotice(nIdx, imageFiles);
+      }
+    }
+
+    function updateNoticeImageWidth(nIdx, iIdx, widthVal) {
+      if (planData.notices[nIdx]?.images[iIdx]) {
+        planData.notices[nIdx].images[iIdx].width = widthVal;
+        renderNoticeBlocks();
+      }
+    }
+
+    function updateNoticeImageCaption(nIdx, iIdx, el) {
+      if (planData.notices[nIdx]?.images[iIdx]) {
+        planData.notices[nIdx].images[iIdx].caption = el.innerText.replace(/\r?\n/g, ' ');
+      }
+    }
+
+    function removeNoticeImage(nIdx, iIdx) {
+      if (!planData.notices[nIdx]) return;
+      planData.notices[nIdx].images.splice(iIdx, 1);
+      renderNoticeBlocks();
     }
 
     function downloadPlanJson() {
       const now = new Date();
       const formattedNow = `${formatLocalYMD(now)} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-      // 비어 있는 달력 항목 정리
       const cleanCalendar = {};
       Object.entries(planData.calendar).forEach(([k, v]) => {
         if ((v.text && v.text.trim() !== '') || v.color) {
@@ -1237,11 +1589,11 @@
       });
 
       const exportObj = {
-        version: '2.0',
+        version: '2.1',
         updatedAt: formattedNow,
         startDate: planData.startDate,
         calendar: cleanCalendar,
-        noticeTable: planData.noticeTable
+        notices: planData.notices
       };
 
       const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json;charset=utf-8' });
