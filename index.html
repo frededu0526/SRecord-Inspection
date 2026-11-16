@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>교차 점검 통합 관리 시스템0.03</title>
+  <title>교차 점검 통합 관리 시스템 v1.0</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -309,7 +309,7 @@
   <!-- 오버올 메인 인터페이스 -->
   <header>
     <div>
-      <h1>학교생활기록부 교차 점검 시스템</h1>
+      <h1>학교생활기록부 교차 점검 시스템 <span style="font-size:0.85rem; font-weight:500; color:#93c5fd;">v1.0</span></h1>
       <div class="status-bar">
         <span id="dbDot" class="dot"></span>
         <span id="dbStatusText">Supabase 연결 확인 중...</span>
@@ -338,7 +338,10 @@
       <div class="card">
         <div class="card-title">
           <span>점검 교사 및 과목 선택</span>
-          <span class="help-text" id="tab1AssignedInfo"></span>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span id="t1SyncStatusBadge"></span>
+            <span class="help-text" id="tab1AssignedInfo" style="margin-top:0;"></span>
+          </div>
         </div>
         <div class="control-bar">
           <div class="form-group">
@@ -378,8 +381,8 @@
               <!-- 2행: 입력 기준행 -->
               <tr class="input-row">
                 <td id="t1InputSubjectDisplay" style="font-weight:700; color:var(--primary);">-</td>
-                <td><input type="text" id="t1InputStudentId" placeholder="예: 10101 또는 10101-10130" style="width:100%;" onkeydown="if(event.key==='Enter') t1ApplyInput()" /></td>
-                <td><input type="text" id="t1InputComment" placeholder="공란 시 '이상 없음' 입력" style="width:100%;" onkeydown="if(event.key==='Enter') t1ApplyInput()" /></td>
+                <td><input type="text" id="t1InputStudentId" placeholder="예: 10101 또는 10101-10130" style="width:100%;" oninput="onT1DraftInputChange()" onkeydown="if(event.key==='Enter') t1ApplyInput()" /></td>
+                <td><input type="text" id="t1InputComment" placeholder="공란 시 '이상 없음' 입력" style="width:100%;" oninput="onT1DraftInputChange()" onkeydown="if(event.key==='Enter') t1ApplyInput()" /></td>
                 <td><button class="btn btn-primary btn-sm" onclick="t1ApplyInput()">반영</button></td>
               </tr>
               <!-- 3행부터 동적 렌더링 -->
@@ -648,9 +651,11 @@
     let supabaseClient = null;
     let masterTable1 = []; // Supabase "내부 테이블1" 전체 캐시
 
-    // 1번 탭 상태: [{ 과목명, 학번, 수정사항 }]
+    // 1번 탭 상태: [{ 과목명, 학번, 수정사항 }] 및 현재 활성 교사/과목 추적
     let t1Entries = [];
-    let t1LoadSeq = 0; // 비동기 전환 시 이전 요청 덮어쓰기 방지 토큰
+    let t1ActiveTeacher = '';
+    let t1ActiveSubject = '';
+    let t1SyncState = 'empty'; // 'empty' | 'draft' | 'partial' | 'submitted'
 
     // 2번 탭 상태
     let t2StatusMap = {};
@@ -687,7 +692,6 @@
         if (applyFilterFn) {
           query = applyFilterFn(query);
         }
-        // 일관된 정렬을 보장해 페이지 누락 방지
         query = query.order('과목명', { ascending: true }).order('학번', { ascending: true }).range(from, from + pageSize - 1);
 
         const { data, error } = await query;
@@ -783,6 +787,14 @@
       if (savedKey) localStorage.setItem('sb_key', savedKey);
 
       t1Entries = [];
+      t1ActiveTeacher = '';
+      t1ActiveSubject = '';
+      t1SyncState = 'empty';
+      document.getElementById('t1InputStudentId').value = '';
+      document.getElementById('t1InputComment').value = '';
+      renderT1Table();
+      updateT1StatusBadge();
+
       t2StatusMap = {};
       t2Table2Cache = {};
       t4EndNum = null;
@@ -814,6 +826,9 @@
      * 공통: 탭 전환 및 내부 테이블1 로드
      *************************************************************************/
     async function switchTab(tabId) {
+      // 탭 이동 직전 1번 탭의 현재 작업 내용(미반영 입력칸 포함) 로컬 자동 저장
+      saveT1Local();
+
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === tabId));
 
@@ -843,8 +858,104 @@
     }
 
     /*************************************************************************
-     * 1번 탭: 점검교사의 입력 공간 (1검, 2검, 3검)
+     * 1번 탭: 점검교사의 입력 공간 (1검, 2검, 3검) - 로컬 임시저장 강화 (v1.0)
      *************************************************************************/
+    function getT1LocalRecord(teacher, subject) {
+      if (!teacher || !subject) return null;
+      const raw = localStorage.getItem(`tab1_${teacher}_${subject}`);
+      if (!raw) return null;
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return {
+            entries: parsed,
+            draftStudentId: '',
+            draftComment: '',
+            syncState: parsed.length > 0 ? 'draft' : 'empty'
+          };
+        }
+        if (parsed && typeof parsed === 'object') {
+          const entries = Array.isArray(parsed.entries) ? parsed.entries : [];
+          const draftStudentId = String(parsed.draftStudentId ?? '');
+          const draftComment = String(parsed.draftComment ?? '');
+          const syncState = parsed.syncState || ((entries.length > 0 || draftStudentId || draftComment) ? 'draft' : 'empty');
+          return { entries, draftStudentId, draftComment, syncState };
+        }
+      } catch (e) {
+        console.error('로컬 임시저장 데이터 파싱 오류:', e);
+      }
+      return null;
+    }
+
+    function saveT1Local() {
+      if (!t1ActiveTeacher || !t1ActiveSubject) return;
+      const draftStudentId = document.getElementById('t1InputStudentId').value;
+      const draftComment = document.getElementById('t1InputComment').value;
+
+      const payload = {
+        entries: t1Entries,
+        draftStudentId,
+        draftComment,
+        syncState: t1SyncState
+      };
+      localStorage.setItem(`tab1_${t1ActiveTeacher}_${t1ActiveSubject}`, JSON.stringify(payload));
+      refreshT1SubjectOptionLabels();
+    }
+
+    function onT1DraftInputChange() {
+      if (!t1ActiveTeacher || !t1ActiveSubject) return;
+      const draftStudentId = document.getElementById('t1InputStudentId').value;
+      const draftComment = document.getElementById('t1InputComment').value;
+
+      if (t1Entries.length === 0 && draftStudentId === '' && draftComment === '') {
+        if (t1SyncState !== 'submitted') t1SyncState = 'empty';
+      } else {
+        t1SyncState = 'draft';
+      }
+      saveT1Local();
+      updateT1StatusBadge();
+    }
+
+    function updateT1StatusBadge() {
+      const badgeEl = document.getElementById('t1SyncStatusBadge');
+      if (!badgeEl) return;
+      if (!t1ActiveTeacher || !t1ActiveSubject) {
+        badgeEl.innerHTML = '';
+        return;
+      }
+
+      if (t1SyncState === 'submitted') {
+        badgeEl.innerHTML = '<span class="badge badge-ok">DB 제출 완료</span>';
+      } else if (t1SyncState === 'partial') {
+        badgeEl.innerHTML = '<span class="badge badge-done">일부 DB 저장됨 (미점검 잔여)</span>';
+      } else if (t1SyncState === 'draft') {
+        badgeEl.innerHTML = '<span class="badge badge-edit" style="cursor:default;">로컬 임시저장됨 (DB 미제출)</span>';
+      } else {
+        badgeEl.innerHTML = '<span class="badge badge-none">작성 전</span>';
+      }
+    }
+
+    function refreshT1SubjectOptionLabels() {
+      const teacher = document.getElementById('t1TeacherSelect').value;
+      const subSel = document.getElementById('t1SubjectSelect');
+      if (!teacher || !subSel) return;
+
+      Array.from(subSel.options).forEach(opt => {
+        const sub = opt.value;
+        if (!sub) return;
+        const rec = getT1LocalRecord(teacher, sub);
+        if (!rec || rec.syncState === 'empty') {
+          opt.textContent = sub;
+        } else if (rec.syncState === 'submitted') {
+          opt.textContent = `${sub} [제출완료]`;
+        } else if (rec.syncState === 'partial') {
+          opt.textContent = `${sub} [일부저장]`;
+        } else {
+          opt.textContent = `${sub} [임시저장]`;
+        }
+      });
+    }
+
     function populateTab1Teachers() {
       const sel = document.getElementById('t1TeacherSelect');
       const prev = sel.value;
@@ -864,6 +975,11 @@
     }
 
     function onT1TeacherChange(keepSubject = false) {
+      // 1) 교사 변경 직전 현재 작업 중이던 (교사, 과목) 상태 자동 저장
+      saveT1Local();
+      t1ActiveTeacher = '';
+      t1ActiveSubject = '';
+
       const teacher = document.getElementById('t1TeacherSelect').value;
       const subSel = document.getElementById('t1SubjectSelect');
       const prevSub = subSel.value;
@@ -885,85 +1001,61 @@
       } else if (subjects.length > 0 && !keepSubject) {
         subSel.value = subjects[0];
       }
+      refreshT1SubjectOptionLabels();
       onT1SubjectChange();
     }
 
-    // 과목/교사 변경 시 즉시 화면을 비우고 DB(내부 테이블2) + 로컬 저장소 내역을 자동 병합 로드
-    async function onT1SubjectChange() {
-      const seq = ++t1LoadSeq;
+    // 과목 변경 시: 직전 과목 자동 저장 후, 새 과목의 로컬 임시저장 데이터를 즉시 복원 (DB 자동 덮어쓰기 없음)
+    function onT1SubjectChange() {
+      // 1) 직전에 보고 있던 (t1ActiveTeacher, t1ActiveSubject)가 있다면 먼저 로컬 저장
+      saveT1Local();
+
+      // 2) 새로 선택된 교사·과목으로 포인터 갱신
       const teacher = document.getElementById('t1TeacherSelect').value;
       const subject = document.getElementById('t1SubjectSelect').value;
+      t1ActiveTeacher = teacher;
+      t1ActiveSubject = subject;
+
       document.getElementById('t1InputSubjectDisplay').textContent = subject || '-';
 
-      // 드롭다운을 옮기는 즉시 이전 과목 행이 화면에 남지 않도록 초기화
-      t1Entries = [];
-      renderT1Table();
-
       if (!teacher || !subject) {
-        document.getElementById('t1AssignedInfo').textContent = '';
+        t1Entries = [];
+        t1SyncState = 'empty';
+        document.getElementById('t1InputStudentId').value = '';
+        document.getElementById('t1InputComment').value = '';
+        document.getElementById('tab1AssignedInfo').textContent = '';
+        renderT1Table();
+        updateT1StatusBadge();
         return;
       }
 
       const assigned = getT1AssignedRows(teacher, subject);
-      document.getElementById('t1AssignedInfo').textContent = `배정 인원: 총 ${assigned.length}명`;
+      document.getElementById('tab1AssignedInfo').textContent = `배정 인원: 총 ${assigned.length}명`;
 
-      const roleByStudentId = {};
-      assigned.forEach(r => {
-        if (r['1검교사'] === teacher) roleByStudentId[r['학번']] = '1검 결과';
-        else if (r['2검교사'] === teacher) roleByStudentId[r['학번']] = '2검 결과';
-        else if (r['3검교사'] === teacher) roleByStudentId[r['학번']] = '3검 결과';
-      });
+      const assignedIdSet = new Set(assigned.map(r => String(r['학번']).trim()));
+      const rec = getT1LocalRecord(teacher, subject);
 
-      const mergedMap = new Map();
-
-      // 1) DB("내부 테이블2")에 이미 저장된 해당 교사·과목 점검 내역 불러오기
-      if (supabaseClient && assigned.length > 0) {
-        try {
-          const dbRows = await fetchAllRows('내부 테이블2', q => q.eq('과목명', subject));
-          if (seq !== t1LoadSeq) return; // 그사이 다른 과목으로 다시 바꿨으면 무시
-
-          dbRows.forEach(row => {
-            const sid = String(row['학번'] ?? '').trim();
-            const col = roleByStudentId[sid];
-            if (col && row[col] !== null && row[col] !== undefined) {
-              mergedMap.set(sid, {
-                '과목명': subject,
-                '학번': sid,
-                '수정사항': String(row[col])
-              });
-            }
-          });
-        } catch (err) {
-          console.error('내부 테이블2 자동 로드 오류:', err);
-        }
+      if (rec) {
+        t1Entries = rec.entries
+          .filter(item => item['과목명'] === subject && assignedIdSet.has(String(item['학번']).trim()))
+          .map(item => ({
+            '과목명': subject,
+            '학번': String(item['학번']).trim(),
+            '수정사항': String(item['수정사항'] ?? '이상 없음')
+          }))
+          .sort((a, b) => a['학번'].localeCompare(b['학번']));
+        document.getElementById('t1InputStudentId').value = rec.draftStudentId;
+        document.getElementById('t1InputComment').value = rec.draftComment;
+        t1SyncState = rec.syncState;
+      } else {
+        t1Entries = [];
+        document.getElementById('t1InputStudentId').value = '';
+        document.getElementById('t1InputComment').value = '';
+        t1SyncState = 'empty';
       }
 
-      // 2) 로컬 저장소에 저장된 미제출/최신 작업 내역 덮어쓰기 (현재 선택된 과목만 엄격 필터링)
-      const lsKey = `tab1_${teacher}_${subject}`;
-      const saved = localStorage.getItem(lsKey);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            parsed.forEach(item => {
-              const sid = String(item['학번'] ?? '').trim();
-              if (item['과목명'] === subject && roleByStudentId[sid]) {
-                mergedMap.set(sid, {
-                  '과목명': subject,
-                  '학번': sid,
-                  '수정사항': String(item['수정사항'] ?? '이상 없음')
-                });
-              }
-            });
-          }
-        } catch (e) {
-          console.error('로컬 데이터 파싱 오류:', e);
-        }
-      }
-
-      if (seq !== t1LoadSeq) return;
-      t1Entries = Array.from(mergedMap.values()).sort((a, b) => a['학번'].localeCompare(b['학번']));
       renderT1Table();
+      updateT1StatusBadge();
     }
 
     function getT1AssignedRows(teacher, subject) {
@@ -971,13 +1063,6 @@
         r['과목명'] === subject &&
         (r['1검교사'] === teacher || r['2검교사'] === teacher || r['3검교사'] === teacher)
       );
-    }
-
-    function saveT1Local() {
-      const teacher = document.getElementById('t1TeacherSelect').value;
-      const subject = document.getElementById('t1SubjectSelect').value;
-      if (!teacher || !subject) return;
-      localStorage.setItem(`tab1_${teacher}_${subject}`, JSON.stringify(t1Entries));
     }
 
     function expandT1StudentInput(rawStr, assignedIdSet) {
@@ -1050,11 +1135,13 @@
       });
 
       t1Entries = Array.from(map.values()).sort((a, b) => a['학번'].localeCompare(b['학번']));
-      saveT1Local();
-      renderT1Table();
-
       document.getElementById('t1InputStudentId').value = '';
       document.getElementById('t1InputComment').value = '';
+
+      t1SyncState = 'draft';
+      saveT1Local();
+      renderT1Table();
+      updateT1StatusBadge();
 
       if (!silent && unmatched.length > 0) {
         alert(`배정된 학번 ${matched.length}건이 반영되었습니다.\n(미배정 또는 형식 오류 제외: ${unmatched.join(', ')})`);
@@ -1076,7 +1163,6 @@
       }
 
       const assignedRows = getT1AssignedRows(teacher, subject);
-      // 문자열 정규화 비교로 기존 입력 학생이 절대 덮어씌워지지 않도록 보호
       const existingSet = new Set(t1Entries.map(e => String(e['학번']).trim()));
       let addedCount = 0;
 
@@ -1099,8 +1185,10 @@
       }
 
       t1Entries.sort((a, b) => a['학번'].localeCompare(b['학번']));
+      t1SyncState = 'draft';
       saveT1Local();
       renderT1Table();
+      updateT1StatusBadge();
       alert(`기존 입력된 ${t1Entries.length - addedCount}명은 유지하고, 나머지 ${addedCount}명의 학생을 '이상 없음'으로 일괄 입력했습니다.`);
     }
 
@@ -1109,14 +1197,19 @@
       if (!target) return;
       document.getElementById('t1InputStudentId').value = target['학번'];
       document.getElementById('t1InputComment').value = target['수정사항'] === '이상 없음' ? '' : target['수정사항'];
+      t1SyncState = 'draft';
+      saveT1Local();
+      updateT1StatusBadge();
       document.getElementById('t1InputComment').focus();
     }
 
     function t1DeleteRow(studentId) {
       const sid = String(studentId).trim();
       t1Entries = t1Entries.filter(e => String(e['학번']).trim() !== sid);
+      t1SyncState = 'draft';
       saveT1Local();
       renderT1Table();
+      updateT1StatusBadge();
     }
 
     function renderT1Table() {
@@ -1226,6 +1319,10 @@
           }
         }
 
+        t1SyncState = (missingCount === 0) ? 'submitted' : 'partial';
+        saveT1Local();
+        updateT1StatusBadge();
+
         if (missingCount === 0) {
           alert(`${subject} 과목 점검 결과가 Supabase("내부 테이블2")에 정상 제출되었습니다.`);
         }
@@ -1269,8 +1366,20 @@
 
         loaded.sort((a, b) => a['학번'].localeCompare(b['학번']));
         t1Entries = loaded;
+        document.getElementById('t1InputStudentId').value = '';
+        document.getElementById('t1InputComment').value = '';
+
+        if (loaded.length === 0) {
+          t1SyncState = 'empty';
+        } else if (loaded.length < assignedRows.length) {
+          t1SyncState = 'partial';
+        } else {
+          t1SyncState = 'submitted';
+        }
+
         saveT1Local();
         renderT1Table();
+        updateT1StatusBadge();
         alert(`DB에서 ${loaded.length}건의 점검 내역을 불러왔습니다.`);
       } catch (error) {
         alert('불러오기 오류: ' + error.message);
