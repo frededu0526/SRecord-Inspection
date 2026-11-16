@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>교차 점검 통합 관리 시스템 v1.0</title>
+  <title>교차 점검 통합 관리 시스템 v2.0</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -104,7 +104,7 @@
     }
     .form-group { display: flex; align-items: center; gap: 6px; }
     label { font-size: 0.88rem; font-weight: 600; color: var(--secondary); white-space: nowrap; }
-    select, input[type="text"], input[type="number"], input[type="password"] {
+    select, input[type="text"], input[type="number"], input[type="password"], input[type="date"] {
       padding: 8px 12px;
       border: 1px solid var(--border);
       border-radius: 6px;
@@ -163,6 +163,141 @@
     tr:last-child td { border-bottom: none; }
     tr.input-row td { background: #eff6ff; border-bottom: 2px solid #bfdbfe; }
     tbody tr:hover:not(.input-row) { background: #f8fafc; }
+
+    /* =========================================================
+       1번 탭 (점검 계획 6주 달력 & 공지사항 표) 전용 스타일
+       ========================================================= */
+    .cal-table {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+    .cal-table th {
+      padding: 10px 6px;
+      font-size: 0.88rem;
+      border-right: 1px solid #e2e8f0;
+      border-bottom: 2px solid var(--border);
+      background: #f8fafc;
+    }
+    .cal-table th:last-child { border-right: none; }
+    .cal-table th.sun { color: #dc2626; background: #fef2f2; }
+    .cal-table th.sat { color: #2563eb; background: #eff6ff; }
+
+    .cal-table td {
+      height: 104px;
+      vertical-align: top;
+      text-align: left;
+      padding: 6px 8px;
+      border-right: 1px solid #e2e8f0;
+      border-bottom: 1px solid #e2e8f0;
+      background: #ffffff;
+      transition: background-color 0.15s;
+    }
+    .cal-table td:last-child { border-right: none; }
+    .cal-table tbody tr:hover td { background: inherit; }
+
+    /* 달력 셀 강조 색상 */
+    .cal-table td.tint-yellow { background: #fef9c3 !important; }
+    .cal-table td.tint-red { background: #fee2e2 !important; }
+    .cal-table td.tint-green { background: #dcfce7 !important; }
+    .cal-table td.tint-blue { background: #dbeafe !important; }
+
+    .cal-cell-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      user-select: none;
+    }
+    .cal-date-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--secondary);
+    }
+    .cal-date-label.sun { color: #dc2626; }
+    .cal-date-label.sat { color: #2563eb; }
+    .cal-today-pill {
+      display: inline-block;
+      margin-left: 4px;
+      padding: 1px 5px;
+      font-size: 0.7rem;
+      border-radius: 4px;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+    }
+    .cal-tint-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      opacity: 0.35;
+      padding: 0 2px;
+      line-height: 1;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .cal-table td:hover .cal-tint-btn,
+    .cal-tint-btn:focus {
+      opacity: 1;
+    }
+    .cal-tint-btn:hover { transform: scale(1.2); color: var(--primary); }
+
+    .cal-cell-body {
+      min-height: 70px;
+      font-size: 0.84rem;
+      line-height: 1.42;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+      outline: none;
+      border-radius: 4px;
+      padding: 2px 3px;
+    }
+    .cal-cell-body:focus {
+      background: rgba(255, 255, 255, 0.85);
+      box-shadow: inset 0 0 0 1.5px var(--primary);
+    }
+    .cal-cell-body:empty:focus::before {
+      content: '일정 입력...';
+      color: #94a3b8;
+    }
+
+    /* 공지사항 자유 규격 표 */
+    .notice-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .notice-table th,
+    .notice-table td {
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+      min-width: 110px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      outline: none;
+    }
+    .notice-table th {
+      background: #f1f5f9;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+    }
+    .notice-table tbody tr:hover { background: #ffffff; }
+    .notice-table th:focus,
+    .notice-table td:focus {
+      background: #eff6ff;
+      box-shadow: inset 0 0 0 2px var(--primary);
+    }
+    .notice-table th:empty:focus::before,
+    .notice-table td:empty:focus::before {
+      content: '내용 입력...';
+      color: #94a3b8;
+      font-weight: 400;
+    }
 
     .badge {
       display: inline-block;
@@ -309,7 +444,7 @@
   <!-- 오버올 메인 인터페이스 -->
   <header>
     <div>
-      <h1>학교생활기록부 교차 점검 시스템 <span style="font-size:0.85rem; font-weight:500; color:#93c5fd;">v1.0</span></h1>
+      <h1>학교생활기록부 교차 점검 시스템 <span style="font-size:0.85rem; font-weight:500; color:#93c5fd;">v2.0</span></h1>
       <div class="status-bar">
         <span id="dbDot" class="dot"></span>
         <span id="dbStatusText">Supabase 연결 확인 중...</span>
@@ -321,20 +456,88 @@
     </div>
   </header>
 
-  <!-- 4개 메인 탭 메뉴 -->
+  <!-- 5개 메인 탭 메뉴 -->
   <nav class="tab-nav">
-    <button class="tab-btn active" data-tab="tab1" onclick="switchTab('tab1')">1. 점검교사 입력 공간 (1·2·3검)</button>
-    <button class="tab-btn" data-tab="tab2" onclick="switchTab('tab2')">2. 입력주체교사 확인 및 수정</button>
-    <button class="tab-btn" data-tab="tab3" onclick="switchTab('tab3')">3. 교무기획부 모니터링</button>
-    <button class="tab-btn" data-tab="tab4" onclick="switchTab('tab4')">4. 기초자료 입력</button>
+    <button class="tab-btn active" data-tab="tab0" onclick="switchTab('tab0')">1. 점검 계획 및 공지사항</button>
+    <button class="tab-btn" data-tab="tab1" onclick="switchTab('tab1')">2. 점검교사 입력 공간 (1·2·3검)</button>
+    <button class="tab-btn" data-tab="tab2" onclick="switchTab('tab2')">3. 입력주체교사 확인 및 수정</button>
+    <button class="tab-btn" data-tab="tab3" onclick="switchTab('tab3')">4. 교무기획부 모니터링</button>
+    <button class="tab-btn" data-tab="tab4" onclick="switchTab('tab4')">5. 기초자료 입력</button>
   </nav>
 
   <div class="container">
 
     <!-- =========================================================
-         1번 탭: 점검교사의 입력 공간 (1검, 2검, 3검)
+         1번 탭 (신규): 점검 계획(6주 달력) 및 공지사항(자유 표)
          ========================================================= -->
-    <section id="tab1" class="tab-content active">
+    <section id="tab0" class="tab-content active">
+      <!-- 1) 달력 형식의 점검 계획 (6주 기간, 일~토) -->
+      <div class="card">
+        <div class="card-title">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span>점검 일정 계획 (6주 달력)</span>
+            <span class="help-text" id="planStatusText" style="margin-top:0;">불러오는 중...</span>
+          </div>
+          <div class="control-bar" style="gap:8px;">
+            <div class="form-group">
+              <label for="planStartDate">기준 시작일</label>
+              <input type="date" id="planStartDate" onchange="onPlanStartDateChange()" style="padding:5px 9px; font-size:0.84rem;" />
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="loadPlanJsonFromServer(true)">게시본 되돌리기</button>
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('planJsonFileInput').click()">PC 파일 불러오기</button>
+            <input type="file" id="planJsonFileInput" accept=".json,application/json" style="display:none;" onchange="importPlanJsonFile(event)" />
+            <button class="btn btn-primary btn-sm" onclick="downloadPlanJson()">data.json 다운로드</button>
+          </div>
+        </div>
+        <p class="help-text" style="margin-bottom:10px;">
+          원하는 날짜 칸을 클릭해 일정을 바로 입력·수정할 수 있습니다. 각 칸 우측 상단의 <strong>●</strong> 버튼을 누르면 강조 색상이 변경됩니다. (수정 후 <strong>data.json 다운로드</strong> → GitHub 업로드 시 전체 반영)
+        </p>
+        <div class="table-wrap">
+          <table class="cal-table">
+            <thead>
+              <tr>
+                <th class="sun">일</th>
+                <th>월</th>
+                <th>화</th>
+                <th>수</th>
+                <th>목</th>
+                <th>금</th>
+                <th class="sat">토</th>
+              </tr>
+            </thead>
+            <tbody id="planCalendarBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 2) 표 형식의 공지사항 (자유 규격 조절) -->
+      <div class="card">
+        <div class="card-title">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span>점검 관련 공지사항</span>
+            <span class="help-text" id="noticeSizeInfo" style="margin-top:0;"></span>
+          </div>
+          <div class="control-bar" style="gap:6px;">
+            <label style="display:inline-flex; align-items:center; gap:4px; margin-right:6px; cursor:pointer; font-size:0.83rem;">
+              <input type="checkbox" id="noticeHasHeaderChk" checked onchange="toggleNoticeHeaderRow(this.checked)" />
+              첫 행 제목줄 강조
+            </label>
+            <button class="btn btn-outline btn-sm" onclick="addNoticeRow()">+ 행 추가</button>
+            <button class="btn btn-outline btn-sm" onclick="removeNoticeRow()">- 행 삭제</button>
+            <button class="btn btn-outline btn-sm" onclick="addNoticeCol()">+ 열 추가</button>
+            <button class="btn btn-outline btn-sm" onclick="removeNoticeCol()">- 열 삭제</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="notice-table" id="planNoticeTable"></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         2번 탭: 점검교사의 입력 공간 (1검, 2검, 3검)
+         ========================================================= -->
+    <section id="tab1" class="tab-content">
       <div class="card">
         <div class="card-title">
           <span>점검 교사 및 과목 선택</span>
@@ -393,7 +596,7 @@
     </section>
 
     <!-- =========================================================
-         2번 탭: 입력주체교사의 점검 결과 확인 및 수정 탭
+         3번 탭: 입력주체교사의 점검 결과 확인 및 수정 탭
          ========================================================= -->
     <section id="tab2" class="tab-content">
       <div class="card">
@@ -446,7 +649,7 @@
     </section>
 
     <!-- =========================================================
-         3번 탭: 교무기획부 업무담당자를 위한 모니터링 탭
+         4번 탭: 교무기획부 업무담당자를 위한 모니터링 탭
          ========================================================= -->
     <section id="tab3" class="tab-content">
       <div class="card">
@@ -495,7 +698,7 @@
     </section>
 
     <!-- =========================================================
-         4번 탭: 기초자료 입력 탭
+         5번 탭: 기초자료 입력 탭
          ========================================================= -->
     <section id="tab4" class="tab-content">
       <div class="card">
@@ -651,20 +854,36 @@
     let supabaseClient = null;
     let masterTable1 = []; // Supabase "내부 테이블1" 전체 캐시
 
-    // 1번 탭 상태: [{ 과목명, 학번, 수정사항 }] 및 현재 활성 교사/과목 추적
+    // 1번 탭(tab0): 점검 계획 및 공지사항 (data.json 연동)
+    let planData = {
+      version: '2.0',
+      updatedAt: '',
+      startDate: '',
+      calendar: {}, // { 'YYYY-MM-DD': { text: '...', color: '' | 'tint-yellow' | 'tint-red' | 'tint-green' | 'tint-blue' } }
+      noticeTable: {
+        hasHeader: true,
+        rows: [
+          ['구분', '대상 교사', '주요 안내 사항'],
+          ['1·2·3검 입력', '점검교사', '2번 탭에서 교사·과목 선택 후 점검 결과 입력 및 [제출 (DB 저장)] 클릭'],
+          ['확인 및 수정', '입력주체교사', '3번 탭에서 수정 의견 확인·반영 후 점검 상태 변경 및 [결과 제출] 클릭']
+        ]
+      }
+    };
+
+    // 2번 탭(tab1) 상태: [{ 과목명, 학번, 수정사항 }] 및 현재 활성 교사/과목 추적
     let t1Entries = [];
     let t1ActiveTeacher = '';
     let t1ActiveSubject = '';
     let t1SyncState = 'empty'; // 'empty' | 'draft' | 'partial' | 'submitted'
 
-    // 2번 탭 상태
+    // 3번 탭(tab2) 상태
     let t2StatusMap = {};
     let t2Table2Cache = {};
 
-    // 3번 탭 상태
+    // 4번 탭(tab3) 상태
     let t3Mode = 'summary';
 
-    // 4번 탭 상태
+    // 5번 탭(tab4) 상태
     let t4EndNum = null;
     let t4ClassCount = null;
     let t4Subjects = { 1: [], 2: [], 3: [] };
@@ -678,6 +897,24 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+    }
+
+    // 로컬 타임존(KST) 기준 YYYY-MM-DD 포맷 및 파싱 유틸
+    function formatLocalYMD(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function parseLocalYMD(ymdStr) {
+      if (!ymdStr || !/^\d{4}-\d{2}-\d{2}$/.test(ymdStr)) return null;
+      const [y, m, d] = ymdStr.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function getSundayOfWeek(date) {
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay());
     }
 
     // Supabase 기본 1,000행 제한을 우회하여 전체 행을 끝까지 가져오는 헬퍼
@@ -768,6 +1005,278 @@
     }
 
     /*************************************************************************
+     * 1번 탭(tab0): 점검 계획(6주 달력) 및 공지사항(자유 규격 표) & data.json
+     *************************************************************************/
+    function applyPlanJsonObject(rawObj) {
+      const todaySun = getSundayOfWeek(new Date());
+      const parsedStart = parseLocalYMD(rawObj?.startDate);
+      const effectiveSun = parsedStart ? getSundayOfWeek(parsedStart) : todaySun;
+
+      const normalizedCal = {};
+      if (rawObj && rawObj.calendar && typeof rawObj.calendar === 'object') {
+        Object.entries(rawObj.calendar).forEach(([k, v]) => {
+          if (typeof v === 'string') {
+            normalizedCal[k] = { text: v, color: '' };
+          } else if (v && typeof v === 'object') {
+            normalizedCal[k] = {
+              text: String(v.text ?? ''),
+              color: String(v.color ?? '')
+            };
+          }
+        });
+      }
+
+      let rows = [
+        ['구분', '대상 교사', '주요 안내 사항'],
+        ['1·2·3검 입력', '점검교사', '2번 탭에서 교사·과목 선택 후 점검 결과 입력 및 [제출 (DB 저장)] 클릭'],
+        ['확인 및 수정', '입력주체교사', '3번 탭에서 수정 의견 확인·반영 후 점검 상태 변경 및 [결과 제출] 클릭']
+      ];
+      let hasHeader = true;
+
+      if (rawObj && rawObj.noticeTable && Array.isArray(rawObj.noticeTable.rows) && rawObj.noticeTable.rows.length > 0) {
+        const maxCols = Math.max(1, ...rawObj.noticeTable.rows.map(r => Array.isArray(r) ? r.length : 0));
+        rows = rawObj.noticeTable.rows.map(r => {
+          const arr = Array.isArray(r) ? r.map(c => String(c ?? '')) : [''];
+          while (arr.length < maxCols) arr.push('');
+          return arr;
+        });
+        hasHeader = rawObj.noticeTable.hasHeader !== false;
+      }
+
+      planData = {
+        version: '2.0',
+        updatedAt: String(rawObj?.updatedAt ?? ''),
+        startDate: formatLocalYMD(effectiveSun),
+        calendar: normalizedCal,
+        noticeTable: { hasHeader, rows }
+      };
+
+      document.getElementById('planStartDate').value = planData.startDate;
+      document.getElementById('noticeHasHeaderChk').checked = planData.noticeTable.hasHeader;
+      renderPlanCalendar();
+      renderNoticeTable();
+    }
+
+    async function loadPlanJsonFromServer(isManualReset = false) {
+      if (isManualReset && !confirm('현재 화면에서 수정한 내용을 버리고 GitHub에 게시된 data.json 내용으로 되돌리시겠습니까?')) {
+        return;
+      }
+      const statusEl = document.getElementById('planStatusText');
+      try {
+        const res = await fetch(`./data.json?t=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        applyPlanJsonObject(json);
+        const timeInfo = planData.updatedAt ? ` (게시일시: ${planData.updatedAt})` : '';
+        statusEl.textContent = `게시본(data.json) 적용됨${timeInfo}`;
+      } catch (e) {
+        // data.json이 아직 업로드되지 않았거나 로컬 file:// 실행 시 기본 양식 표시
+        if (!planData.startDate) {
+          applyPlanJsonObject({});
+        }
+        statusEl.textContent = '기본 양식 표시 중 (수정 후 data.json을 다운로드하여 GitHub에 업로드하세요)';
+      }
+    }
+
+    function onPlanStartDateChange() {
+      const val = document.getElementById('planStartDate').value;
+      const picked = parseLocalYMD(val);
+      if (!picked) return;
+      const sunday = getSundayOfWeek(picked);
+      planData.startDate = formatLocalYMD(sunday);
+      document.getElementById('planStartDate').value = planData.startDate;
+      renderPlanCalendar();
+    }
+
+    function renderPlanCalendar() {
+      const tbody = document.getElementById('planCalendarBody');
+      const startObj = parseLocalYMD(planData.startDate) || getSundayOfWeek(new Date());
+      const todayYMD = formatLocalYMD(new Date());
+
+      let html = '';
+      for (let week = 0; week < 6; week++) {
+        html += '<tr>';
+        for (let dow = 0; dow < 7; dow++) {
+          const offset = week * 7 + dow;
+          const cellDate = new Date(startObj.getFullYear(), startObj.getMonth(), startObj.getDate() + offset);
+          const ymd = formatLocalYMD(cellDate);
+          const entry = planData.calendar[ymd] || { text: '', color: '' };
+
+          const isToday = ymd === todayYMD;
+          const isFirstDay = cellDate.getDate() === 1 || (week === 0 && dow === 0);
+          const dateLabelText = isFirstDay
+            ? `${cellDate.getMonth() + 1}/${cellDate.getDate()}`
+            : `${cellDate.getDate()}`;
+          const dowClass = dow === 0 ? 'sun' : (dow === 6 ? 'sat' : '');
+          const tintClass = entry.color ? ` ${entry.color}` : '';
+
+          html += `
+            <td id="calCell_${ymd}" class="${tintClass}">
+              <div class="cal-cell-top">
+                <span class="cal-date-label ${dowClass}">
+                  ${dateLabelText}${isToday ? '<span class="cal-today-pill">오늘</span>' : ''}
+                </span>
+                <button type="button" class="cal-tint-btn" title="칸 강조 색상 변경" onclick="cycleCalendarCellTint('${ymd}')">●</button>
+              </div>
+              <div class="cal-cell-body" contenteditable="true" oninput="onCalendarCellInput('${ymd}', this)">${escapeHtml(entry.text)}</div>
+            </td>
+          `;
+        }
+        html += '</tr>';
+      }
+      tbody.innerHTML = html;
+    }
+
+    function onCalendarCellInput(ymd, el) {
+      const text = el.innerText.replace(/\r\n/g, '\n');
+      const prevColor = planData.calendar[ymd]?.color || '';
+      if (text.trim() === '' && !prevColor) {
+        delete planData.calendar[ymd];
+      } else {
+        planData.calendar[ymd] = { text, color: prevColor };
+      }
+    }
+
+    function cycleCalendarCellTint(ymd) {
+      const order = ['', 'tint-yellow', 'tint-red', 'tint-green', 'tint-blue'];
+      const cur = planData.calendar[ymd]?.color || '';
+      const next = order[(order.indexOf(cur) + 1) % order.length];
+      const text = planData.calendar[ymd]?.text || '';
+
+      if (text.trim() === '' && !next) {
+        delete planData.calendar[ymd];
+      } else {
+        planData.calendar[ymd] = { text, color: next };
+      }
+
+      const td = document.getElementById(`calCell_${ymd}`);
+      if (td) {
+        td.classList.remove('tint-yellow', 'tint-red', 'tint-green', 'tint-blue');
+        if (next) td.classList.add(next);
+      }
+    }
+
+    function renderNoticeTable() {
+      const table = document.getElementById('planNoticeTable');
+      const { hasHeader, rows } = planData.noticeTable;
+      const rowCount = rows.length;
+      const colCount = rows[0]?.length || 1;
+
+      document.getElementById('noticeSizeInfo').textContent = `현재 규격: ${rowCount}행 × ${colCount}열`;
+
+      let html = '';
+      rows.forEach((row, rIdx) => {
+        const isHeaderRow = hasHeader && rIdx === 0;
+        if (rIdx === 0 && isHeaderRow) html += '<thead>';
+        if ((rIdx === 1 && hasHeader) || (rIdx === 0 && !hasHeader)) html += '<tbody>';
+
+        html += '<tr>';
+        row.forEach((cellVal, cIdx) => {
+          const tag = isHeaderRow ? 'th' : 'td';
+          html += `<${tag} contenteditable="true" oninput="onNoticeCellInput(${rIdx}, ${cIdx}, this)">${escapeHtml(cellVal)}</${tag}>`;
+        });
+        html += '</tr>';
+
+        if (rIdx === 0 && isHeaderRow) html += '</thead>';
+        if (rIdx === rows.length - 1) html += '</tbody>';
+      });
+      table.innerHTML = html;
+    }
+
+    function onNoticeCellInput(rIdx, cIdx, el) {
+      if (planData.noticeTable.rows[rIdx]) {
+        planData.noticeTable.rows[rIdx][cIdx] = el.innerText.replace(/\r\n/g, '\n');
+      }
+    }
+
+    function toggleNoticeHeaderRow(checked) {
+      planData.noticeTable.hasHeader = checked;
+      renderNoticeTable();
+    }
+
+    function addNoticeRow() {
+      const colCount = planData.noticeTable.rows[0]?.length || 3;
+      planData.noticeTable.rows.push(Array(colCount).fill(''));
+      renderNoticeTable();
+    }
+
+    function removeNoticeRow() {
+      if (planData.noticeTable.rows.length <= 1) {
+        alert('최소 1개 이상의 행은 유지되어야 합니다.');
+        return;
+      }
+      planData.noticeTable.rows.pop();
+      renderNoticeTable();
+    }
+
+    function addNoticeCol() {
+      planData.noticeTable.rows.forEach(r => r.push(''));
+      renderNoticeTable();
+    }
+
+    function removeNoticeCol() {
+      const colCount = planData.noticeTable.rows[0]?.length || 1;
+      if (colCount <= 1) {
+        alert('최소 1개 이상의 열은 유지되어야 합니다.');
+        return;
+      }
+      planData.noticeTable.rows.forEach(r => r.pop());
+      renderNoticeTable();
+    }
+
+    function downloadPlanJson() {
+      const now = new Date();
+      const formattedNow = `${formatLocalYMD(now)} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      // 비어 있는 달력 항목 정리
+      const cleanCalendar = {};
+      Object.entries(planData.calendar).forEach(([k, v]) => {
+        if ((v.text && v.text.trim() !== '') || v.color) {
+          cleanCalendar[k] = { text: v.text || '', color: v.color || '' };
+        }
+      });
+
+      const exportObj = {
+        version: '2.0',
+        updatedAt: formattedNow,
+        startDate: planData.startDate,
+        calendar: cleanCalendar,
+        noticeTable: planData.noticeTable
+      };
+
+      const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'data.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      document.getElementById('planStatusText').textContent = `data.json 다운로드 완료 (${formattedNow}) - GitHub에 업로드하세요`;
+    }
+
+    function importPlanJsonFile(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(String(e.target?.result || '{}'));
+          applyPlanJsonObject(parsed);
+          document.getElementById('planStatusText').textContent = `PC 파일(${file.name}) 불러옴`;
+          alert('선택한 JSON 파일의 일정과 공지사항을 불러왔습니다.');
+        } catch (err) {
+          alert('올바른 JSON 파일 형식이 아닙니다: ' + err.message);
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    }
+
+    /*************************************************************************
      * 오버올 메인 인터페이스: 모든 자료 초기화 (비번: hdh2026)
      *************************************************************************/
     async function resetAllSystemData() {
@@ -826,7 +1335,7 @@
      * 공통: 탭 전환 및 내부 테이블1 로드
      *************************************************************************/
     async function switchTab(tabId) {
-      // 탭 이동 직전 1번 탭의 현재 작업 내용(미반영 입력칸 포함) 로컬 자동 저장
+      // 탭 이동 직전 2번 탭(점검교사 입력 공간)의 현재 작업 내용(미반영 입력칸 포함) 로컬 자동 저장
       saveT1Local();
 
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
@@ -858,7 +1367,7 @@
     }
 
     /*************************************************************************
-     * 1번 탭: 점검교사의 입력 공간 (1검, 2검, 3검) - 로컬 임시저장 강화 (v1.0)
+     * 2번 탭(tab1): 점검교사의 입력 공간 (1검, 2검, 3검) - 로컬 임시저장
      *************************************************************************/
     function getT1LocalRecord(teacher, subject) {
       if (!teacher || !subject) return null;
@@ -975,7 +1484,6 @@
     }
 
     function onT1TeacherChange(keepSubject = false) {
-      // 1) 교사 변경 직전 현재 작업 중이던 (교사, 과목) 상태 자동 저장
       saveT1Local();
       t1ActiveTeacher = '';
       t1ActiveSubject = '';
@@ -1005,12 +1513,9 @@
       onT1SubjectChange();
     }
 
-    // 과목 변경 시: 직전 과목 자동 저장 후, 새 과목의 로컬 임시저장 데이터를 즉시 복원 (DB 자동 덮어쓰기 없음)
     function onT1SubjectChange() {
-      // 1) 직전에 보고 있던 (t1ActiveTeacher, t1ActiveSubject)가 있다면 먼저 로컬 저장
       saveT1Local();
 
-      // 2) 새로 선택된 교사·과목으로 포인터 갱신
       const teacher = document.getElementById('t1TeacherSelect').value;
       const subject = document.getElementById('t1SubjectSelect').value;
       t1ActiveTeacher = teacher;
@@ -1157,7 +1662,6 @@
         return;
       }
 
-      // 2행 입력칸에 미처 [반영] 버튼을 누르지 않은 학번이 적혀 있다면 먼저 반영하여 유실 방지
       if (document.getElementById('t1InputStudentId').value.trim() !== '') {
         t1ApplyInput(true);
       }
@@ -1284,7 +1788,6 @@
           }
         }
 
-        // 삭제 동기화: UI 목록에서 제거된 학번은 DB의 해당 n검 결과 컬럼을 null로 비움
         const removedIdSet = new Set(
           assignedRows
             .map(r => String(r['학번']).trim())
@@ -1387,7 +1890,7 @@
     }
 
     /*************************************************************************
-     * 2번 탭: 입력주체교사의 점검 결과 확인 및 수정 탭
+     * 3번 탭(tab2): 입력주체교사의 점검 결과 확인 및 수정 탭
      *************************************************************************/
     function populateTab2Teachers() {
       const sel = document.getElementById('t2TeacherSelect');
@@ -1484,7 +1987,7 @@
             }
           });
         } catch (err) {
-          console.error('2번 탭 DB 조회 오류:', err);
+          console.error('3번 탭 DB 조회 오류:', err);
         }
       }
 
@@ -1621,7 +2124,7 @@
     }
 
     /*************************************************************************
-     * 3번 탭: 교무기획부 업무담당자를 위한 모니터링 탭
+     * 4번 탭(tab3): 교무기획부 업무담당자를 위한 모니터링 탭
      *************************************************************************/
     function populateTab3Subjects() {
       const grade = document.getElementById('t3GradeSelect').value;
@@ -1688,7 +2191,7 @@
           d2.forEach(r => { t2Map[`${String(r['과목명']).trim()}||${String(r['학번']).trim()}`] = r; });
           d3.forEach(r => { t3Map[`${String(r['과목명']).trim()}||${String(r['학번']).trim()}`] = r; });
         } catch (err) {
-          console.error('3번 탭 데이터 조회 오류:', err);
+          console.error('4번 탭 데이터 조회 오류:', err);
         }
       }
 
@@ -1791,7 +2294,7 @@
     }
 
     /*************************************************************************
-     * 4번 탭: 기초자료 입력 탭
+     * 5번 탭(tab4): 기초자료 입력 탭
      *************************************************************************/
     function initTab4UI() {
       const grid = document.getElementById('t4RegGrid');
@@ -2239,7 +2742,6 @@
           await supabaseClient.from('내부 테이블2').delete().neq('과목명', '');
           await supabaseClient.from('내부 테이블1').delete().neq('과목명', '');
 
-          // 대용량 데이터 분할 전송 (500건 단위)
           for (let i = 0; i < t4DraftTable1.length; i += 500) {
             const chunk = t4DraftTable1.slice(i, i + 500);
             const { error } = await supabaseClient.from('내부 테이블1').insert(chunk);
@@ -2268,6 +2770,7 @@
      *************************************************************************/
     window.addEventListener('DOMContentLoaded', async () => {
       initTab4UI();
+      await loadPlanJsonFromServer(false);
       if (initSupabase()) {
         await fetchMasterTable1();
       }
