@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>교차 점검 통합 관리 시스템 v3.0</title>
+  <title>교차 점검 통합 관리 시스템 v3.1</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -395,6 +395,57 @@
       color: #94a3b8;
     }
 
+    /* =========================================================
+       5번 탭 (엑셀/표 붙여넣기 일괄 등록) 스타일
+       ========================================================= */
+    .paste-box {
+      width: 100%;
+      min-height: 112px;
+      padding: 10px 12px;
+      border: 1.5px dashed #94a3b8;
+      border-radius: 8px;
+      font-family: 'Pretendard', 'Malgun Gothic', monospace;
+      font-size: 0.88rem;
+      line-height: 1.45;
+      background: #f8fafc;
+      color: var(--text);
+      resize: vertical;
+      transition: border-color 0.15s, background-color 0.15s;
+    }
+    .paste-box:focus {
+      outline: none;
+      border-color: var(--primary);
+      border-style: solid;
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+    .paste-grid-table th {
+      padding: 8px 6px;
+      font-size: 0.84rem;
+    }
+    .paste-grid-table td {
+      padding: 5px 6px;
+    }
+    .paste-cell-input {
+      width: 100%;
+      padding: 5px 7px !important;
+      font-size: 0.85rem !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 5px !important;
+      text-align: center;
+    }
+    .paste-cell-input:focus {
+      border-color: var(--primary) !important;
+      background: #eff6ff !important;
+    }
+    .paste-class-input {
+      width: 54px !important;
+      padding: 4px 5px !important;
+      font-size: 0.84rem !important;
+      font-weight: 700;
+      text-align: center;
+    }
+
     /* 아카이브 요약 통계 배지 바 */
     .arc-meta-bar {
       display: flex;
@@ -555,7 +606,7 @@
   <!-- 오버올 메인 인터페이스 -->
   <header>
     <div>
-      <h1>학교생활기록부 교차 점검 시스템 <span style="font-size:0.85rem; font-weight:500; color:#93c5fd;">v3.0</span></h1>
+      <h1>학교생활기록부 교차 점검 시스템 <span style="font-size:0.85rem; font-weight:500; color:#93c5fd;">v3.1</span></h1>
       <div class="status-bar">
         <span id="dbDot" class="dot"></span>
         <span id="dbStatusText">Supabase 연결 확인 중...</span>
@@ -864,7 +915,93 @@
 
       <div class="card">
         <div class="card-title">
-          <span>3) 과목별 학생(학번) 및 검수 교사 등록</span>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span>3) 엑셀 / 표 붙여넣기 일괄 등록 (추천)</span>
+            <span class="badge badge-done">5열 표(과목명·입력주체·1검·2검·3검) 자동 전개</span>
+          </div>
+          <span class="help-text" id="t4PasteSummaryBadge">붙여넣은 행: 0행 (생성 예정: 0명)</span>
+        </div>
+
+        <div class="control-bar" style="margin-bottom: 10px;">
+          <div class="form-group">
+            <label for="t4PasteGrade">대상 학년</label>
+            <select id="t4PasteGrade" onchange="recalcT4PasteRows()">
+              <option value="1">1학년</option>
+              <option value="2">2학년</option>
+              <option value="3">3학년</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="t4PasteStartClass">시작 반</label>
+            <input type="number" id="t4PasteStartClass" value="1" min="1" max="30" style="width:74px;" oninput="recalcT4PasteRows()" />
+          </div>
+          <div class="form-group">
+            <label for="t4PasteEndNum">반별 끝 번호</label>
+            <input type="number" id="t4PasteEndNum" value="35" min="1" max="99" style="width:78px;" oninput="recalcT4PasteRows()" />
+          </div>
+          <div class="form-group">
+            <label for="t4PasteColMode">열 구성</label>
+            <select id="t4PasteColMode" onchange="onT4PasteColModeChange()">
+              <option value="5col" selected>5열: 과목명 | 입력주체 | 1검 | 2검 | 3검</option>
+              <option value="4col">4열: 입력주체 | 1검 | 2검 | 3검 (과목 지정)</option>
+              <option value="6col">6열: 반 | 과목명 | 입력주체 | 1검 | 2검 | 3검</option>
+            </select>
+          </div>
+          <div class="form-group" id="t4PasteFixedSubWrap" style="display:none;">
+            <label for="t4PasteFixedSub">지정 과목명</label>
+            <input type="text" id="t4PasteFixedSub" placeholder="예: 국어" style="width:120px;" oninput="recalcT4PasteRows()" />
+          </div>
+          <div class="form-group" id="t4PasteAssignModeWrap">
+            <label for="t4PasteAssignMode">반 배정</label>
+            <select id="t4PasteAssignMode" onchange="recalcT4PasteRows()">
+              <option value="perSubject" selected>과목별 시작 반(1반)부터 순차 배정</option>
+              <option value="sequential">행 순서대로 시작 반(1반)부터 순차 배정</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+          <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.84rem; color:var(--text);">
+            <input type="checkbox" id="t4PasteFillDown" checked onchange="onT4PasteRawInput()" />
+            빈 과목명 셀은 윗줄 과목명 이어받기 (엑셀 세로 병합 셀 자동 처리)
+          </label>
+          <div class="control-bar" style="gap:6px;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="t4AddEmptyPasteRow()">+ 행 추가</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="t4ClearPasteData()">입력 초기화</button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="t4ApplyPastedTable()">대기 목록에 일괄 반영</button>
+          </div>
+        </div>
+
+        <textarea
+          id="t4PasteTextarea"
+          class="paste-box"
+          placeholder="엑셀(Excel)이나 한글에서 [과목명 / 입력주체교사 / 1검교사 / 2검교사 / 3검교사] 5열 영역을 복사(Ctrl+C)한 뒤 이곳에 붙여넣기(Ctrl+V) 하세요.&#10;예시)&#10;국어	이선영	류	문	최&#10;국어	이선영	류	류	박&#10;국어	류인선	유신	박	김"
+          oninput="onT4PasteRawInput()"
+          onpaste="handleT4TextareaPaste(event)"
+        ></textarea>
+
+        <div id="t4PasteGridWrap" class="table-wrap" style="margin-top: 12px; display: none;">
+          <table class="paste-grid-table">
+            <thead>
+              <tr>
+                <th style="width: 5%;">순번</th>
+                <th style="width: 19%;">배정 반 / 학번 범위</th>
+                <th style="width: 16%;">과목명</th>
+                <th style="width: 13%;">입력주체교사</th>
+                <th style="width: 13%;">1검교사</th>
+                <th style="width: 13%;">2검교사</th>
+                <th style="width: 13%;">3검교사</th>
+                <th style="width: 8%;">삭제</th>
+              </tr>
+            </thead>
+            <tbody id="t4PastePreviewBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>4) 과목별 학생(학번) 및 검수 교사 개별 등록</span>
           <span class="help-text">각 반영 버튼은 독립적으로 동작하며 기존 데이터에 덧붙여집니다.</span>
         </div>
         <div class="grade-grid" id="t4RegGrid"></div>
@@ -1079,6 +1216,7 @@
     let t4ClassCount = null;
     let t4Subjects = { 1: [], 2: [], 3: [] };
     let t4DraftTable1 = [];
+    let t4PasteRows = [];
 
     // 6번 탭(tab5): 아카이브 상태 (archive.json 연동)
     let archiveData = {
@@ -1792,6 +1930,10 @@
       t4ClassCount = null;
       t4Subjects = { 1: [], 2: [], 3: [] };
       t4DraftTable1 = [];
+      t4PasteRows = [];
+      const pasteTa = document.getElementById('t4PasteTextarea');
+      if (pasteTa) pasteTa.value = '';
+      renderT4PasteGrid();
       document.getElementById('t4EndNumInput').value = '';
       document.getElementById('t4ClassCountInput').value = '';
       updateT4ConfigSummary();
@@ -2837,8 +2979,423 @@
         return;
       }
       t4EndNum = val;
+      const pasteEndEl = document.getElementById('t4PasteEndNum');
+      if (pasteEndEl) {
+        pasteEndEl.value = val;
+        recalcT4PasteRows();
+      }
       updateT4ConfigSummary();
       alert(`종료 번호가 ${t4EndNum}번으로 확정되었습니다.`);
+    }
+
+    /*************************************************************************
+     * 5번 탭 보조: 엑셀 / 표 붙여넣기 일괄 등록 로직
+     *************************************************************************/
+    function onT4PasteColModeChange() {
+      const mode = document.getElementById('t4PasteColMode').value;
+      document.getElementById('t4PasteFixedSubWrap').style.display = (mode === '4col') ? 'flex' : 'none';
+      document.getElementById('t4PasteAssignModeWrap').style.display = (mode === '6col') ? 'none' : 'flex';
+      onT4PasteRawInput();
+    }
+
+    function extractRowsFromClipboardHtml(htmlText) {
+      if (!htmlText || !htmlText.includes('<tr')) return null;
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, 'text/html');
+        const trs = Array.from(doc.querySelectorAll('tr'));
+        if (trs.length === 0) return null;
+        return trs.map(tr => {
+          const cells = Array.from(tr.querySelectorAll('th, td'));
+          return cells.map(c => c.textContent.replace(/
+?
+/g, ' ').trim());
+        }).filter(row => row.some(cell => cell !== ''));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function parseRawTableText(rawText) {
+      const normalized = String(rawText || '').replace(/
+/g, '
+').replace(/
+/g, '
+');
+      const lines = normalized.split('
+').filter(line => line.trim() !== '');
+      return lines.map(line => {
+        if (line.includes('	')) {
+          return line.split('	').map(c => c.trim());
+        }
+        if (line.includes(',')) {
+          return line.split(',').map(c => c.trim());
+        }
+        return line.trim().split(/\s+/);
+      });
+    }
+
+    function handleT4TextareaPaste(event) {
+      const plain = event.clipboardData?.getData('text/plain') || '';
+      const html = event.clipboardData?.getData('text/html') || '';
+      // If plain text has no tabs but HTML table exists (e.g., copied from rich editor/web), parse HTML table
+      if (!plain.includes('	') && html.includes('<tr')) {
+        const htmlRows = extractRowsFromClipboardHtml(html);
+        if (htmlRows && htmlRows.length > 0) {
+          event.preventDefault();
+          const tsv = htmlRows.map(r => r.join('	')).join('
+');
+          const ta = document.getElementById('t4PasteTextarea');
+          ta.value = tsv;
+          onT4PasteRawInput();
+        }
+      }
+    }
+
+    function isHeaderRowTokens(tokens) {
+      const joined = tokens.join('|');
+      return (
+        (joined.includes('과목') || joined.includes('교과')) &&
+        (joined.includes('입력주체') || joined.includes('1검') || joined.includes('교사'))
+      ) || (
+        tokens.includes('입력주체교사') || tokens.includes('1검교사')
+      );
+    }
+
+    function parseClassNumberToken(token, fallbackClass) {
+      const cleaned = String(token || '').replace(/[^0-9]/g, '');
+      if (!cleaned) return fallbackClass;
+      const num = parseInt(cleaned, 10);
+      if (num >= 101 && num <= 399) {
+        return num % 100;
+      }
+      return (num >= 1 && num <= 30) ? num : fallbackClass;
+    }
+
+    function onT4PasteRawInput() {
+      const rawText = document.getElementById('t4PasteTextarea').value;
+      const colMode = document.getElementById('t4PasteColMode').value;
+      const fillDown = document.getElementById('t4PasteFillDown').checked;
+      const fixedSub = document.getElementById('t4PasteFixedSub').value.trim();
+
+      const matrix = parseRawTableText(rawText);
+      const parsed = [];
+      let lastSubject = '';
+
+      matrix.forEach((cols, idx) => {
+        if (idx === 0 && isHeaderRowTokens(cols)) return;
+
+        let explicitClass = null;
+        let subject = '';
+        let mainT = '';
+        let c1 = '';
+        let c2 = '';
+        let c3 = '';
+
+        if (colMode === '6col') {
+          explicitClass = parseClassNumberToken(cols[0], null);
+          subject = (cols[1] || '').trim();
+          mainT = (cols[2] || '').trim();
+          c1 = (cols[3] || '').trim();
+          c2 = (cols[4] || '').trim();
+          c3 = (cols[5] || '').trim();
+        } else if (colMode === '4col') {
+          subject = fixedSub;
+          mainT = (cols[0] || '').trim();
+          c1 = (cols[1] || '').trim();
+          c2 = (cols[2] || '').trim();
+          c3 = (cols[3] || '').trim();
+        } else {
+          // 5col: 과목명 | 입력주체교사 | 1검교사 | 2검교사 | 3검교사
+          subject = (cols[0] || '').trim();
+          mainT = (cols[1] || '').trim();
+          c1 = (cols[2] || '').trim();
+          c2 = (cols[3] || '').trim();
+          c3 = (cols[4] || '').trim();
+        }
+
+        if (colMode !== '4col') {
+          if (!subject && fillDown && lastSubject) {
+            subject = lastSubject;
+          } else if (subject) {
+            lastSubject = subject;
+          }
+        }
+
+        if (!subject && !mainT && !c1 && !c2 && !c3) return;
+
+        parsed.push({
+          classNum: explicitClass || 1,
+          manualClass: colMode === '6col' && explicitClass !== null,
+          subject,
+          mainT,
+          c1,
+          c2,
+          c3
+        });
+      });
+
+      t4PasteRows = parsed;
+      recalcT4PasteRows();
+    }
+
+    function recalcT4PasteRows() {
+      const startClass = Math.max(1, parseInt(document.getElementById('t4PasteStartClass').value, 10) || 1);
+      const colMode = document.getElementById('t4PasteColMode').value;
+      const assignMode = document.getElementById('t4PasteAssignMode').value;
+      const fixedSub = document.getElementById('t4PasteFixedSub').value.trim();
+
+      const subjectClassCounter = new Map();
+      let seqClass = startClass;
+
+      t4PasteRows.forEach(row => {
+        if (colMode === '4col' && fixedSub) {
+          row.subject = fixedSub;
+        }
+        if (row.manualClass) return;
+
+        if (assignMode === 'sequential') {
+          row.classNum = seqClass++;
+        } else {
+          const key = row.subject || '__EMPTY__';
+          const nextCls = subjectClassCounter.has(key) ? subjectClassCounter.get(key) + 1 : startClass;
+          row.classNum = nextCls;
+          subjectClassCounter.set(key, nextCls);
+        }
+      });
+
+      renderT4PasteGrid();
+    }
+
+    function formatClassRangeLabel(grade, classNum, endNo) {
+      const clsStr = String(classNum).padStart(2, '0');
+      const endStr = String(endNo).padStart(2, '0');
+      return `${grade}${clsStr}01~${grade}${clsStr}${endStr}`;
+    }
+
+    function renderT4PasteGrid() {
+      const wrap = document.getElementById('t4PasteGridWrap');
+      const tbody = document.getElementById('t4PastePreviewBody');
+      const badge = document.getElementById('t4PasteSummaryBadge');
+
+      const grade = document.getElementById('t4PasteGrade').value;
+      const endNo = Math.min(99, Math.max(1, parseInt(document.getElementById('t4PasteEndNum').value, 10) || 35));
+
+      if (!t4PasteRows || t4PasteRows.length === 0) {
+        wrap.style.display = 'none';
+        tbody.innerHTML = '';
+        badge.textContent = '붙여넣은 행: 0행 (생성 예정: 0명)';
+        return;
+      }
+
+      wrap.style.display = 'block';
+      let validCount = 0;
+      let dupCount = 0;
+
+      tbody.innerHTML = t4PasteRows.map((r, idx) => {
+        const rangeStr = formatClassRangeLabel(grade, r.classNum, endNo);
+        const isFilled = r.subject && r.mainT && r.c1 && r.c2 && r.c3;
+        const distinctCheckers = new Set([r.c1, r.c2, r.c3].filter(Boolean)).size;
+        const hasDup = r.c1 && r.c2 && r.c3 && distinctCheckers < 3;
+
+        if (isFilled && !hasDup) validCount++;
+        if (hasDup) dupCount++;
+
+        let statusHtml = '';
+        if (!isFilled) {
+          statusHtml = `<div style="font-size:0.74rem; color:var(--danger); font-weight:600; margin-top:2px;">미입력 칸 있음</div>`;
+        } else if (hasDup) {
+          statusHtml = `<div style="font-size:0.74rem; color:var(--warning); font-weight:700; margin-top:2px;">1·2·3검 교사 중복</div>`;
+        } else {
+          statusHtml = `<div style="font-size:0.74rem; color:var(--success); font-weight:600; margin-top:2px;">${rangeStr} (${endNo}명)</div>`;
+        }
+
+        return `
+          <tr>
+            <td style="font-weight:600; color:var(--secondary);">${idx + 1}</td>
+            <td>
+              <div style="display:flex; align-items:center; justify-content:center; gap:4px;">
+                <input type="number" class="paste-class-input" min="1" max="30" value="${r.classNum}" onchange="onT4PasteClassEdit(${idx}, this.value)" />
+                <span style="font-size:0.82rem; font-weight:600;">반</span>
+              </div>
+              ${statusHtml}
+            </td>
+            <td><input type="text" class="paste-cell-input" value="${escapeHtml(r.subject)}" placeholder="과목명" oninput="onT4PasteCellEdit(${idx}, 'subject', this.value)" onpaste="handleT4GridCellPaste(event, ${idx}, 0)" /></td>
+            <td><input type="text" class="paste-cell-input" value="${escapeHtml(r.mainT)}" placeholder="입력주체" oninput="onT4PasteCellEdit(${idx}, 'mainT', this.value)" onpaste="handleT4GridCellPaste(event, ${idx}, 1)" /></td>
+            <td><input type="text" class="paste-cell-input" value="${escapeHtml(r.c1)}" placeholder="1검교사" oninput="onT4PasteCellEdit(${idx}, 'c1', this.value)" onpaste="handleT4GridCellPaste(event, ${idx}, 2)" /></td>
+            <td><input type="text" class="paste-cell-input" value="${escapeHtml(r.c2)}" placeholder="2검교사" oninput="onT4PasteCellEdit(${idx}, 'c2', this.value)" onpaste="handleT4GridCellPaste(event, ${idx}, 3)" /></td>
+            <td><input type="text" class="paste-cell-input" value="${escapeHtml(r.c3)}" placeholder="3검교사" oninput="onT4PasteCellEdit(${idx}, 'c3', this.value)" onpaste="handleT4GridCellPaste(event, ${idx}, 4)" /></td>
+            <td><button type="button" class="btn btn-danger btn-sm" onclick="t4RemovePasteRow(${idx})">삭제</button></td>
+          </tr>
+        `;
+      }).join('');
+
+      const totalStudents = t4PasteRows.length * endNo;
+      const warnSuffix = dupCount > 0 ? ` · 중복 주의 ${dupCount}행` : '';
+      badge.textContent = `붙여넣은 행: ${t4PasteRows.length}행 (생성 예정: 총 ${totalStudents}명 / 정상 ${validCount}행${warnSuffix})`;
+    }
+
+    function onT4PasteClassEdit(idx, val) {
+      const num = parseInt(val, 10);
+      if (!isNaN(num) && num >= 1 && num <= 30 && t4PasteRows[idx]) {
+        t4PasteRows[idx].classNum = num;
+        t4PasteRows[idx].manualClass = true;
+        renderT4PasteGrid();
+      }
+    }
+
+    function onT4PasteCellEdit(idx, field, val) {
+      if (!t4PasteRows[idx]) return;
+      t4PasteRows[idx][field] = val.trim();
+      if (field === 'subject') {
+        recalcT4PasteRows();
+      } else {
+        renderT4PasteGrid();
+      }
+    }
+
+    function handleT4GridCellPaste(event, startRowIdx, startFieldIdx) {
+      const plain = event.clipboardData?.getData('text/plain') || '';
+      if (!plain.includes('	') && !plain.includes('
+')) return;
+
+      event.preventDefault();
+      const matrix = parseRawTableText(plain);
+      const fields = ['subject', 'mainT', 'c1', 'c2', 'c3'];
+
+      matrix.forEach((cols, rOffset) => {
+        const targetRow = startRowIdx + rOffset;
+        while (t4PasteRows.length <= targetRow) {
+          const prevClass = t4PasteRows.length > 0 ? t4PasteRows[t4PasteRows.length - 1].classNum + 1 : 1;
+          t4PasteRows.push({ classNum: prevClass, manualClass: false, subject: '', mainT: '', c1: '', c2: '', c3: '' });
+        }
+        cols.forEach((val, cOffset) => {
+          const fIdx = startFieldIdx + cOffset;
+          if (fIdx < fields.length) {
+            t4PasteRows[targetRow][fields[fIdx]] = val.trim();
+          }
+        });
+      });
+
+      recalcT4PasteRows();
+    }
+
+    function t4AddEmptyPasteRow() {
+      const grade = document.getElementById('t4PasteGrade').value;
+      const startClass = Math.max(1, parseInt(document.getElementById('t4PasteStartClass').value, 10) || 1);
+      const fixedSub = document.getElementById('t4PasteFixedSub').value.trim();
+      const lastRow = t4PasteRows[t4PasteRows.length - 1];
+      const nextClass = lastRow ? lastRow.classNum + 1 : startClass;
+      const inheritedSub = lastRow ? lastRow.subject : fixedSub;
+
+      t4PasteRows.push({
+        classNum: nextClass,
+        manualClass: false,
+        subject: inheritedSub,
+        mainT: '',
+        c1: '',
+        c2: '',
+        c3: ''
+      });
+      renderT4PasteGrid();
+    }
+
+    function t4RemovePasteRow(idx) {
+      t4PasteRows.splice(idx, 1);
+      recalcT4PasteRows();
+    }
+
+    function t4ClearPasteData() {
+      t4PasteRows = [];
+      document.getElementById('t4PasteTextarea').value = '';
+      renderT4PasteGrid();
+    }
+
+    function t4ApplyPastedTable() {
+      if (!t4PasteRows || t4PasteRows.length === 0) {
+        alert('먼저 엑셀에서 표를 복사해 붙여넣거나 행을 추가해 주세요.');
+        return;
+      }
+
+      const grade = document.getElementById('t4PasteGrade').value;
+      const endNo = parseInt(document.getElementById('t4PasteEndNum').value, 10);
+      if (isNaN(endNo) || endNo < 1 || endNo > 99) {
+        alert('반별 끝 번호를 1~99 사이로 입력해 주세요.');
+        return;
+      }
+
+      const incompleteIdx = t4PasteRows.findIndex(r => !r.subject || !r.mainT || !r.c1 || !r.c2 || !r.c3);
+      if (incompleteIdx !== -1) {
+        alert(`${incompleteIdx + 1}번째 행에 비어 있는 칸(과목명 또는 교사 이름)이 있습니다. 모두 채운 뒤 반영해 주세요.`);
+        return;
+      }
+
+      const dupIdx = t4PasteRows.findIndex(r => new Set([r.c1, r.c2, r.c3]).size < 3);
+      if (dupIdx !== -1) {
+        const proceed = confirm(
+          `${dupIdx + 1}번째 행(${r_label(t4PasteRows[dupIdx])})의 1검·2검·3검 교사에 동일 인물이 중복되어 있습니다.
+그래도 대기 목록에 반영하시겠습니까? (DB 전송 전 수정 필요)`
+        );
+        if (!proceed) return;
+      }
+
+      const rowMap = new Map(t4DraftTable1.map(r => [`${r['과목명']}||${r['학번']}`, r]));
+      const addedSubjects = new Set();
+      let maxClassSeen = 0;
+      let generatedCount = 0;
+
+      t4PasteRows.forEach(r => {
+        addedSubjects.add(r.subject);
+        if (r.classNum > maxClassSeen) maxClassSeen = r.classNum;
+
+        const clsStr = String(r.classNum).padStart(2, '0');
+        for (let no = 1; no <= endNo; no++) {
+          const sid = `${grade}${clsStr}${String(no).padStart(2, '0')}`;
+          rowMap.set(`${r.subject}||${sid}`, {
+            '과목명': r.subject,
+            '학번': sid,
+            '입력주체교사': r.mainT,
+            '1검교사': r.c1,
+            '2검교사': r.c2,
+            '3검교사': r.c3
+          });
+          generatedCount++;
+        }
+      });
+
+      t4DraftTable1 = Array.from(rowMap.values());
+
+      // 학년별 과목 목록에 자동 등록
+      const gNum = parseInt(grade, 10);
+      addedSubjects.forEach(sub => {
+        if (!t4Subjects[gNum].includes(sub)) {
+          t4Subjects[gNum].push(sub);
+        }
+      });
+      t4Subjects[gNum].sort((a, b) => a.localeCompare(b, 'ko'));
+      renderT4Bubbles();
+
+      // 종료 번호 및 학급 개수가 미설정 상태면 자동 동기화
+      if (t4EndNum === null) {
+        t4EndNum = endNo;
+        document.getElementById('t4EndNumInput').value = endNo;
+      }
+      if (t4ClassCount === null && maxClassSeen > 0) {
+        t4ClassCount = maxClassSeen;
+        document.getElementById('t4ClassCountInput').value = maxClassSeen;
+      }
+      updateT4ConfigSummary();
+      renderT4Preview();
+
+      alert(
+        `[${Array.from(addedSubjects).join(', ')}] ${t4PasteRows.length}개 학급, 총 ${generatedCount}명이 하단 "내부 테이블1" 대기 목록에 반영되었습니다.
+` +
+        `확인 후 상단의 [초기화 후 전송] 또는 [누적 전송] 버튼을 눌러 DB에 저장하세요.`
+      );
+    }
+
+    function r_label(r) {
+      return `${r.classNum}반 · ${r.subject}`;
     }
 
     function t4ConfirmClassCount() {
