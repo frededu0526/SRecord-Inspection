@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>교차 점검 통합 관리 시스템 v3.2</title>
+  <title>교차 점검 통합 관리 시스템 v3.3</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -579,7 +579,7 @@
   <!-- 오버올 메인 인터페이스 -->
   <header>
     <div>
-      <h1>학교생활기록부 교차 점검 시스템 <span style="font-size:0.85rem; font-weight:500; color:#93c5fd;">v3.2</span></h1>
+      <h1>학교생활기록부 교차 점검 시스템 <span style="font-size:0.85rem; font-weight:500; color:#93c5fd;">v3.3</span></h1>
       <div class="status-bar">
         <span id="dbDot" class="dot"></span>
         <span id="dbStatusText">Supabase 연결 확인 중...</span>
@@ -1096,6 +1096,38 @@
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="closeModal('dbConfigModal')">취소</button>
         <button class="btn btn-primary" onclick="saveDbConfig()">저장 및 연결</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4·5·6번 탭 열람 비밀번호 확인 모달 -->
+  <div class="modal-backdrop" id="tabAuthModal" onclick="if(event.target === this) cancelTabAuth()">
+    <div class="modal" style="max-width: 420px;">
+      <div class="modal-header">
+        <span>관리자 열람 비밀번호 확인</span>
+        <button style="background:none; border:none; font-size:1.2rem; cursor:pointer;" onclick="cancelTabAuth()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="tabAuthDesc" style="margin-bottom: 12px; color: var(--secondary); font-size: 0.92rem;">
+          해당 탭을 열람하려면 비밀번호를 입력해 주세요.
+        </p>
+        <div>
+          <label for="tabAuthPasswordInput" style="display:block; margin-bottom:6px;">비밀번호</label>
+          <input
+            type="password"
+            id="tabAuthPasswordInput"
+            placeholder="비밀번호 입력"
+            style="width:100%;"
+            onkeydown="if(event.key==='Enter') submitTabAuth(); else if(event.key==='Escape') cancelTabAuth();"
+          />
+        </div>
+        <p id="tabAuthError" style="display:none; color:var(--danger); font-size:0.84rem; font-weight:600; margin-top:8px;">
+          비밀번호가 일치하지 않습니다.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="cancelTabAuth()">취소</button>
+        <button class="btn btn-primary" onclick="submitTabAuth()">확인</button>
       </div>
     </div>
   </div>
@@ -1904,9 +1936,66 @@
     }
 
     /*************************************************************************
-     * 공통: 탭 전환 및 내부 테이블1 로드
+     * 공통: 탭 전환 및 내부 테이블1 로드 (4·5·6번 탭 열람 시 비밀번호 인증)
      *************************************************************************/
+    const ADMIN_TAB_PASSWORD = 'hdh2026';
+    const PROTECTED_TAB_LABELS = {
+      tab3: '4. 교무기획부 모니터링',
+      tab4: '5. 기초자료 입력',
+      tab5: '6. 아카이브'
+    };
+    let isProtectedTabsUnlocked = false;
+    let pendingProtectedTabId = null;
+
+    function openTabAuthModal(tabId) {
+      pendingProtectedTabId = tabId;
+      const tabLabel = PROTECTED_TAB_LABELS[tabId] || '선택한 탭';
+      document.getElementById('tabAuthDesc').textContent = `[${tabLabel}] 탭을 열람하려면 비밀번호를 입력하세요.`;
+      const pwInput = document.getElementById('tabAuthPasswordInput');
+      const errEl = document.getElementById('tabAuthError');
+      pwInput.value = '';
+      errEl.style.display = 'none';
+      document.getElementById('tabAuthModal').classList.add('show');
+      setTimeout(() => pwInput.focus(), 30);
+    }
+
+    function cancelTabAuth() {
+      pendingProtectedTabId = null;
+      document.getElementById('tabAuthPasswordInput').value = '';
+      document.getElementById('tabAuthError').style.display = 'none';
+      closeModal('tabAuthModal');
+    }
+
+    async function submitTabAuth() {
+      const pwInput = document.getElementById('tabAuthPasswordInput');
+      const errEl = document.getElementById('tabAuthError');
+      const entered = pwInput.value;
+
+      if (entered !== ADMIN_TAB_PASSWORD) {
+        errEl.style.display = 'block';
+        pwInput.value = '';
+        pwInput.focus();
+        return;
+      }
+
+      isProtectedTabsUnlocked = true;
+      const targetTab = pendingProtectedTabId;
+      pendingProtectedTabId = null;
+      pwInput.value = '';
+      errEl.style.display = 'none';
+      closeModal('tabAuthModal');
+
+      if (targetTab) {
+        await switchTab(targetTab);
+      }
+    }
+
     async function switchTab(tabId) {
+      if (Object.prototype.hasOwnProperty.call(PROTECTED_TAB_LABELS, tabId) && !isProtectedTabsUnlocked) {
+        openTabAuthModal(tabId);
+        return;
+      }
+
       saveT1Local();
 
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
